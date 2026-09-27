@@ -2,11 +2,13 @@ You are my principal backend engineer and implementation agent working inside In
 
 Extend the existing professional networking platform from MVP-2 to MVP-3 through incremental, verified development.
 
-Create working code, migrations, tests, API contracts, deployment configuration, and operational documentation. Do not stop after planning or scaffolding.
+Create working code, migrations, tests, API contracts, deployment configuration, and operational documentation. Do not
+stop after planning or scaffolding.
 
 ## 1. Starting point and working rules
 
 The intended existing platform includes:
+
 - Java 21, Spring Boot 4.x, Spring Cloud, Spring Security, and Maven.
 - API gateway, member, content, notification, media, and messaging services.
 - Keycloak for OIDC.
@@ -17,6 +19,7 @@ The intended existing platform includes:
 - Prometheus, Grafana, OpenTelemetry, and Zipkin.
 
 Existing product capabilities should include:
+
 - Profiles and connections.
 - Posts, comments, likes, and chronological feeds.
 - Post visibility and blocking.
@@ -27,6 +30,7 @@ Existing product capabilities should include:
 Treat this list as intended context, not evidence of implementation.
 
 Before editing:
+
 - Read applicable AGENTS.md instructions.
 - Inspect existing code, architecture decisions, progress records, migrations, and tests.
 - Run available baseline verification.
@@ -34,9 +38,11 @@ Before editing:
 - Repair prerequisites required by MVP-3 before adding dependent features.
 - Preserve unrelated files and user changes.
 
-Continue automatically between phases after their verification gates pass. Ask only when missing information genuinely blocks progress.
+Continue automatically between phases after their verification gates pass. Ask only when missing information genuinely
+blocks progress.
 
 Do not:
+
 - Rewrite working services unnecessarily.
 - Upgrade frameworks without a concrete compatibility or security need.
 - Add technologies merely to satisfy a technology checklist.
@@ -58,6 +64,7 @@ Deliver a minimal hiring workflow:
 Keep the scope focused.
 
 Exclude:
+
 - Payments, premium subscriptions, sponsored jobs, and advertisements.
 - AI matching, resume parsing, candidate scoring, and automated hiring decisions.
 - External applicant-tracking integrations.
@@ -75,15 +82,18 @@ Use existing member profiles as the basis of applications.
 Add one independently deployable `hiring-service`.
 
 Keep these modules inside hiring-service:
+
 - Companies.
 - Company memberships and invitations.
 - Job postings.
 - Applications.
 - Hiring moderation and audit history.
 
-These concepts share authorization and transactional invariants. Do not create separate company, job, applicant, and recruiter microservices for this release.
+These concepts share authorization and transactional invariants. Do not create separate company, job, applicant, and
+recruiter microservices for this release.
 
 Hiring-service owns:
+
 - Company records.
 - Company roles and invitations.
 - Job records.
@@ -93,12 +103,14 @@ Hiring-service owns:
 - Hiring outbox events.
 
 Existing services retain ownership:
+
 - Member-service: member profiles, relationships, and blocking.
 - Media-service: company logos and binary lifecycle.
 - Notification-service: hiring notifications.
 - Gateway: routing and edge controls.
 
 Rules:
+
 - No cross-service database access.
 - No shared persistence entities.
 - Authenticate internal APIs.
@@ -112,6 +124,7 @@ Document service boundaries and cross-service workflows with concise ADRs and se
 ## 4. Company pages and roles
 
 Support company pages containing:
+
 - Display name.
 - Unique normalized slug.
 - Description.
@@ -123,17 +136,20 @@ Support company pages containing:
 Validate website URLs, but do not fetch them or generate server-side previews.
 
 Company creation:
+
 - An authenticated member creates a company and becomes its owner.
 - Start with one owner per company.
 - Do not present self-created companies as verified employers.
 - State the absence of employer verification clearly in API/documentation terminology.
 
 Company roles:
+
 - `OWNER`: edit company details, invite/remove recruiters, transfer ownership, and manage jobs/applications.
 - `RECRUITER`: manage jobs and applications for that company.
 - No member receives organization access solely from an email domain.
 
 Recruiter invitations:
+
 - Invite an existing member by stable member ID.
 - Only the invited member can accept.
 - Support acceptance, rejection, cancellation, and expiry.
@@ -141,6 +157,7 @@ Recruiter invitations:
 - Do not expose whether arbitrary private email addresses exist.
 
 Ownership:
+
 - Transfer ownership only to an existing accepted company member.
 - Perform transfer atomically.
 - Prevent an owner from accidentally removing the company’s only owner.
@@ -154,6 +171,7 @@ Do not implement company deletion in this release.
 ## 5. Job postings
 
 Support:
+
 - Draft creation.
 - Editing.
 - Publishing.
@@ -163,6 +181,7 @@ Support:
 - Paginated recruiter job management.
 
 Fields:
+
 - Company ID.
 - Title.
 - Plain-text description.
@@ -174,6 +193,7 @@ Fields:
 - Created, updated, and published timestamps.
 
 Validation:
+
 - Bound all text fields.
 - Require salary minimum to be no greater than maximum.
 - Use decimal monetary values and explicit currency/pay-period fields.
@@ -181,6 +201,7 @@ Validation:
 - Do not infer salary currency from a member’s location.
 
 Lifecycle:
+
 - `DRAFT → PUBLISHED → CLOSED`.
 - Closed jobs cannot receive applications.
 - Reopening is outside MVP-3; create a new posting when needed.
@@ -191,7 +212,8 @@ Lifecycle:
 
 Make publish and close operations idempotent.
 
-Do not allow a closing job and a concurrent application submission to violate the application policy. Enforce the decision transactionally within hiring-service.
+Do not allow a closing job and a concurrent application submission to violate the application policy. Enforce the
+decision transactionally within hiring-service.
 
 Preserve an application-time job snapshot so later edits do not rewrite what an applicant applied to.
 
@@ -200,6 +222,7 @@ Preserve an application-time job snapshot so later edits do not rewrite what an 
 Implement useful search without adding a search cluster by default.
 
 Support:
+
 - Keywords over title and description.
 - Company.
 - Location.
@@ -209,6 +232,7 @@ Support:
 - Newest-published ordering.
 
 Start with Oracle-backed search:
+
 - Define normalization and matching semantics.
 - Escape wildcard characters where applicable.
 - Use parameterized queries.
@@ -219,6 +243,7 @@ Start with Oracle-backed search:
 Do not claim indexed full-text search when using substring matching.
 
 Only adopt Oracle Text or another search engine if:
+
 - The requirement and measured baseline justify it.
 - Availability and compatibility are verified.
 - Local development and deployment remain reproducible.
@@ -226,11 +251,13 @@ Only adopt Oracle Text or another search engine if:
 
 Search must exclude drafts, closed jobs, and moderated jobs.
 
-Do not return misleading total counts if exact counting is too expensive. Prefer a documented cursor and `hasMore` response.
+Do not return misleading total counts if exact counting is too expensive. Prefer a documented cursor and `hasMore`
+response.
 
 ## 7. Applications
 
 Allow an authenticated member to:
+
 - Apply to a published, open job.
 - Include an optional bounded cover note.
 - View their applications.
@@ -238,12 +265,14 @@ Allow an authenticated member to:
 - Withdraw an active application.
 
 Allow authorized company members to:
+
 - List applications for their company’s jobs.
 - Filter by job and status.
 - View application details.
 - Update application status.
 
 Use these statuses:
+
 - `SUBMITTED`
 - `IN_REVIEW`
 - `SHORTLISTED`
@@ -251,6 +280,7 @@ Use these statuses:
 - `WITHDRAWN`
 
 Define and test a transition matrix:
+
 - Recruiters move active applications through review or shortlist, or reject them.
 - Applicants can withdraw any nonterminal application.
 - `REJECTED` and `WITHDRAWN` are terminal.
@@ -259,6 +289,7 @@ Define and test a transition matrix:
 Enforce one application per applicant per job with a database constraint.
 
 Application submission:
+
 - Require a client-generated idempotency key.
 - Scope it to the authenticated applicant and submission operation.
 - Return the original result for an identical retry.
@@ -266,6 +297,7 @@ Application submission:
 - Handle concurrent submissions deterministically.
 
 Profile snapshot:
+
 - Obtain an authorized, versioned snapshot of the applicant’s current professional profile from member-service.
 - Include only fields needed for application review.
 - Exclude private messages, connection lists, account email, and authentication data.
@@ -274,19 +306,22 @@ Profile snapshot:
 
 Capture the job snapshot in the hiring transaction.
 
-If member-service is unavailable during submission, return a retriable failure. Do not create an application with fabricated or incomplete profile data.
+If member-service is unavailable during submission, return a retriable failure. Do not create an application with
+fabricated or incomplete profile data.
 
 Do not allow current company members to apply to their own company’s jobs in this MVP.
 
 ## 8. Application privacy and company isolation
 
 An application is visible only to:
+
 - Its applicant.
 - Current authorized members of the hiring company.
 
 Every application query must enforce this policy.
 
 Requirements:
+
 - An applicant cannot retrieve another applicant’s application.
 - A recruiter cannot access another company’s applications by guessing identifiers.
 - Removing a recruiter revokes access on subsequent requests.
@@ -296,6 +331,7 @@ Requirements:
 - Keep cover notes and profile snapshots out of logs, traces, and generic event payloads.
 
 Blocking semantics:
+
 - Member blocking continues to govern personal profiles, connections, content, and messaging.
 - Company recruiting access is granted separately through company membership and the applicant’s submission.
 - A personal block does not silently delete or hide an application from authorized company reviewers.
@@ -303,6 +339,7 @@ Blocking semantics:
 - A recruiter cannot use application access to bypass blocking in messaging-service.
 
 Withdrawal:
+
 - Preserve minimal application and audit history.
 - Redact the cover note and profile snapshot from recruiter-facing responses after withdrawal.
 - Explain that previously viewed information cannot be retroactively revoked.
@@ -313,15 +350,18 @@ Document retention as a configurable product/operational policy, not a claim of 
 ## 9. Notifications and events
 
 Add notifications for:
+
 - A company recruiter invitation.
 - A new application.
 - An application status change.
 
 Use the established outbox and deduplication patterns.
 
-Events should contain identifiers and the minimum routing information required. Do not include cover notes or full profile snapshots.
+Events should contain identifiers and the minimum routing information required. Do not include cover notes or full
+profile snapshots.
 
 Rules:
+
 - No notification for a no-op status update.
 - Duplicate events must not create duplicate notifications.
 - Do not notify an actor about their own action unnecessarily.
@@ -337,12 +377,14 @@ Preserve at-least-once delivery semantics; do not claim end-to-end exactly-once 
 ## 10. Basic hiring moderation
 
 Add reporting of published jobs for:
+
 - Spam.
 - Suspected fraud.
 - Inappropriate content.
 - Other, with a bounded explanation.
 
 Implement inside hiring-service:
+
 - One active report per reporter and job.
 - Moderator-only report queue.
 - Dismiss report.
@@ -350,6 +392,7 @@ Implement inside hiring-service:
 - Audited moderator actions.
 
 Keep moderation status separate from job lifecycle:
+
 - Hiding a job removes it from search and prevents new applications.
 - Existing applicants and authorized recruiters retain permitted application access.
 - Restoring visibility does not reopen a closed job or override its deadline.
@@ -361,6 +404,7 @@ Do not implement automated fraud detection or claim verified employer identity.
 ## 11. Data correctness and compatibility
 
 Use:
+
 - Versioned Oracle migrations.
 - Database uniqueness and referential constraints within hiring-service.
 - Optimistic locking or explicit locking for competing state transitions.
@@ -370,6 +414,7 @@ Use:
 - Bounded queries.
 
 Test:
+
 - Two recruiters changing the same application concurrently.
 - Application submission racing with job closure.
 - Duplicate submissions.
@@ -379,6 +424,7 @@ Test:
 Preserve existing MVP-1 and MVP-2 APIs.
 
 Test migrations:
+
 - From an empty database.
 - From a populated MVP-2 database.
 
@@ -390,11 +436,14 @@ Keep Java 21 and the established Spring stack.
 
 Use MVC and JPA in hiring-service unless the existing architecture provides a justified alternative.
 
-Do not add Scala, Play, Rest.li, Spark, Hadoop, HDFS, Pinot, Samza, Espresso, Voldemort, Couchbase, Helix, Memcached, Ruby, C++, or Akamai simply because they appeared in the original technology list.
+Do not add Scala, Play, Rest.li, Spark, Hadoop, HDFS, Pinot, Samza, Espresso, Voldemort, Couchbase, Helix, Memcached,
+Ruby, C++, or Akamai simply because they appeared in the original technology list.
 
-Evaluate Spring Batch only if a genuine restartable maintenance or retention job warrants it. Deadline enforcement must work at request time even if a scheduled job is delayed.
+Evaluate Spring Batch only if a genuine restartable maintenance or retention job warrants it. Deadline enforcement must
+work at request time even if a scheduled job is delayed.
 
 Update technology decisions with:
+
 - New dependencies and pinned versions.
 - Compatibility evidence.
 - Alternatives considered.
@@ -405,6 +454,7 @@ Update technology decisions with:
 ### Phase 0 — Baseline and design
 
 Deliver:
+
 - MVP-2 verification results.
 - MVP-3 acceptance checklist.
 - Company authorization matrix.
@@ -414,12 +464,14 @@ Deliver:
 - Privacy and retention decisions.
 
 Gate:
+
 - Resolve prerequisites needed by the next phase.
 - Record remaining unrelated baseline failures separately.
 
 ### Phase 1 — Companies and recruiter membership
 
 Implement:
+
 - Hiring-service foundation.
 - Company CRUD within scope.
 - Logo integration.
@@ -428,6 +480,7 @@ Implement:
 - Ownership transfer and audit history.
 
 Gate:
+
 - Company roles cannot cross company boundaries.
 - Membership operations remain correct under concurrency.
 - Removed recruiters lose access.
@@ -436,12 +489,14 @@ Gate:
 ### Phase 2 — Jobs and search
 
 Implement:
+
 - Draft, publish, edit, and close workflows.
 - Validation and deadlines.
 - Search and pagination.
 - Appropriate database indexes.
 
 Gate:
+
 - Unauthorized members cannot manage company jobs.
 - Drafts and closed jobs stay out of search.
 - Publishing and closing are idempotent.
@@ -450,6 +505,7 @@ Gate:
 ### Phase 3 — Applications
 
 Implement:
+
 - Idempotent submission.
 - Profile and job snapshots.
 - Applicant and recruiter queries.
@@ -457,6 +513,7 @@ Implement:
 - Withdrawal and response redaction.
 
 Gate:
+
 - Duplicate requests create one application.
 - Job closure and application submission obey a tested concurrency policy.
 - Company isolation holds.
@@ -466,12 +523,14 @@ Gate:
 ### Phase 4 — Events and moderation
 
 Implement:
+
 - Hiring notifications.
 - Recipient resolution.
 - Report queue and moderator actions.
 - Safe handling of inaccessible notification targets.
 
 Gate:
+
 - Replay does not duplicate notifications.
 - Dependency failures retry safely.
 - Hidden jobs cannot receive new applications.
@@ -481,6 +540,7 @@ Gate:
 ### Phase 5 — Hardening and performance
 
 Implement:
+
 - Security regression tests.
 - Oracle and Kafka integration tests.
 - Contract tests.
@@ -488,6 +548,7 @@ Implement:
 - Relevant metrics, dashboards, and traces.
 
 Gate:
+
 - Failures do not cause lost committed applications or events.
 - Query behavior avoids unbounded N+1 calls.
 - Logs and traces contain no application content.
@@ -497,6 +558,7 @@ Gate:
 ### Phase 6 — Deployment and release
 
 Update:
+
 - Docker Compose.
 - Container builds.
 - Kubernetes configuration.
@@ -508,6 +570,7 @@ Update:
 - Upgrade documentation.
 
 Gate:
+
 - Fresh local installation works.
 - Upgrade from populated MVP-2 data works.
 - Deployed end-to-end tests pass.
@@ -546,6 +609,7 @@ Use deterministic condition-based waits and isolated test data.
 ## 15. Progress and documentation
 
 Maintain:
+
 - `docs/mvp3-plan.md`
 - `docs/mvp3-progress.md`
 - `docs/mvp3-verification.md`
@@ -554,6 +618,7 @@ Maintain:
 Update existing architecture, ADRs, API documentation, technology decisions, and operational runbooks.
 
 At every phase boundary:
+
 - Summarize implemented behavior.
 - Record actual verification commands and results.
 - Separate PASS, FAIL, BLOCKED, and NOT RUN.
@@ -561,6 +626,7 @@ At every phase boundary:
 - Identify the next executable action.
 
 If interrupted:
+
 - Save a precise checkpoint.
 - Record the current phase and incomplete acceptance criteria.
 - Resume from repository evidence instead of recreating completed work.
@@ -568,6 +634,7 @@ If interrupted:
 ## 16. Definition of done
 
 MVP-3 is complete when:
+
 - Companies, recruiter membership, jobs, search, applications, and hiring moderation work through real APIs.
 - Company and applicant authorization are tested.
 - Concurrency constraints and idempotency are verified.
@@ -579,6 +646,8 @@ MVP-3 is complete when:
 - Required business logic contains no placeholders.
 - Remaining blockers and limitations are reported honestly.
 
-Do not claim production readiness, employer verification, legal compliance, or internet-scale capacity without supporting evidence.
+Do not claim production readiness, employer verification, legal compliance, or internet-scale capacity without
+supporting evidence.
 
-Start by inspecting MVP-2 and running baseline verification. Then implement MVP-3 in phases until the acceptance criteria are satisfied.
+Start by inspecting MVP-2 and running baseline verification. Then implement MVP-3 in phases until the acceptance
+criteria are satisfied.

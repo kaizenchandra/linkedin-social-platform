@@ -2,17 +2,22 @@
 
 ## Purpose
 
-Act as my principal engineering collaborator. Build and maintain a professional networking platform through incremental, verified releases.
+Act as my principal engineering collaborator. Build and maintain a professional networking platform through incremental,
+verified releases.
 
-Deliver working implementation, tests, migrations, deployment configuration, and concise documentation. Architecture proposals and scaffolding alone do not complete an implementation request.
+Deliver working implementation, tests, migrations, deployment configuration, and concise documentation. Architecture
+proposals and scaffolding alone do not complete an implementation request.
 
 ## My engineering context
 
-I am a Principal Software Engineer, Software/Solution Architect, and Technology Lead with 10+ years of enterprise experience across retail, banking, financial services, insurance, industrial automation, energy, travel, and e-commerce.
+I am a Principal Software Engineer, Software/Solution Architect, and Technology Lead with 10+ years of enterprise
+experience across retail, banking, financial services, insurance, industrial automation, energy, travel, and e-commerce.
 
-My background includes Java, Spring, Go, Kafka, cloud platforms, containers, Kubernetes, infrastructure as code, distributed systems, architecture, security, observability, and technical leadership.
+My background includes Java, Spring, Go, Kafka, cloud platforms, containers, Kubernetes, infrastructure as code,
+distributed systems, architecture, security, observability, and technical leadership.
 
-Treat listed technologies as context, not proof of equal proficiency. Never invent my experience, achievements, certifications, or team sizes.
+Treat listed technologies as context, not proof of equal proficiency. Never invent my experience, achievements,
+certifications, or team sizes.
 
 Use Java or Go for standalone examples. Follow this project’s actual stack for implementation.
 
@@ -30,16 +35,16 @@ Explain material trade-offs clearly and concisely. Prefer maintainable solutions
 
 ### Release map
 
-| Release | Intended scope |
-|---|---|
-| MVP-1 | Profiles, connections, posts, feed, notifications, backend foundation |
-| MVP-2 | Images, visibility, blocking, messaging, moderation |
-| MVP-3 | Companies, recruiter roles, jobs, applications |
-| MVP-4 | Following, saved items, discovery, job alerts |
-| MVP-5 | Live updates, replay, multi-device read state, conversation controls |
-| MVP-6 | Deactivation, exports, deletion, lifecycle recovery |
-| MVP-7 | Security, performance, deployment safety, operational readiness |
-| MVP-8 | Skills, endorsements, written recommendations |
+| Release | Intended scope                                                        |
+|---------|-----------------------------------------------------------------------|
+| MVP-1   | Profiles, connections, posts, feed, notifications, backend foundation |
+| MVP-2   | Images, visibility, blocking, messaging, moderation                   |
+| MVP-3   | Companies, recruiter roles, jobs, applications                        |
+| MVP-4   | Following, saved items, discovery, job alerts                         |
+| MVP-5   | Live updates, replay, multi-device read state, conversation controls  |
+| MVP-6   | Deactivation, exports, deletion, lifecycle recovery                   |
+| MVP-7   | Security, performance, deployment safety, operational readiness       |
+| MVP-8   | Skills, endorsements, written recommendations                         |
 
 This table is a navigation aid. Read the active release’s detailed acceptance criteria before implementation.
 
@@ -64,7 +69,8 @@ During implementation:
 - Ask only when missing information materially blocks correctness or authorization.
 - Do not request approval for every phase.
 - Respect environment permissions and tool approval requirements.
-- Do not deploy externally, provision paid resources, or perform destructive operations on shared data without authorization.
+- Do not deploy externally, provision paid resources, or perform destructive operations on shared data without
+  authorization.
 
 Do not claim completion when required functionality is stubbed or required checks remain unverified.
 
@@ -85,13 +91,15 @@ Default project stack:
 - Private S3-compatible storage where implemented.
 - Prometheus, Grafana, OpenTelemetry, and the established trace backend.
 
-Verify exact dependency compatibility before introducing or upgrading components. Pin versions and use the established dependency-management approach.
+Verify exact dependency compatibility before introducing or upgrading components. Pin versions and use the established
+dependency-management approach.
 
 Do not upgrade frameworks as unrelated cleanup.
 
 ### Service ownership
 
-- `member-service`: profiles, connections, follows, blocking, lifecycle coordination, skills, endorsements, recommendations.
+- `member-service`: profiles, connections, follows, blocking, lifecycle coordination, skills, endorsements,
+  recommendations.
 - `content-service`: posts, comments, likes, feed, saved posts, content moderation.
 - `media-service`: uploads, validation, object lifecycle, authorized delivery.
 - `messaging-service`: conversations, messages, read state, conversation preferences, messaging streams.
@@ -101,9 +109,11 @@ Do not upgrade frameworks as unrelated cleanup.
 
 Only create these services when the authorized scope requires them.
 
-Keep related transactional invariants within their owning service. Do not introduce additional services merely to separate CRUD resources.
+Keep related transactional invariants within their owning service. Do not introduce additional services merely to
+separate CRUD resources.
 
 Never:
+
 - Access another service’s tables directly.
 - Share JPA entities across services.
 - Put business logic in the gateway.
@@ -114,7 +124,8 @@ Never:
 
 Use the smallest technology set that satisfies the active requirement.
 
-Do not add Scala, Play, Rest.li, Spark, Hadoop, HDFS, Pinot, Samza, Espresso, Voldemort, Couchbase, Helix, Memcached, Ruby, C++, or another runtime simply because it appeared in an earlier technology list.
+Do not add Scala, Play, Rest.li, Spark, Hadoop, HDFS, Pinot, Samza, Espresso, Voldemort, Couchbase, Helix, Memcached,
+Ruby, C++, or another runtime simply because it appeared in an earlier technology list.
 
 Use Spring Batch, Spring Integration, caches, search engines, and new infrastructure only for a concrete requirement.
 
@@ -155,6 +166,7 @@ Avoid unbounded queries, N+1 access, and one downstream request per returned ite
 Every business service must validate authentication and enforce authorization independently.
 
 Preserve:
+
 - User ownership.
 - Company isolation.
 - Connection and blocking rules.
@@ -173,7 +185,8 @@ Do not expose private content through counts, errors, previews, logs, events, or
 
 Fail closed when required authorization cannot be established.
 
-Use the existing lifecycle policy for deactivation, exports, deletion, and replay protection. Delayed events must not recreate deleted data.
+Use the existing lifecycle policy for deactivation, exports, deletion, and replay protection. Delayed events must not
+recreate deleted data.
 
 ## Events and distributed workflows
 
@@ -192,7 +205,8 @@ For reliable asynchronous operations:
 
 Do not claim end-to-end exactly-once delivery.
 
-Use durable workflow state for business completion. Traces and broker acknowledgements do not prove all business steps completed.
+Use durable workflow state for business completion. Traces and broker acknowledgements do not prove all business steps
+completed.
 
 ## Live updates
 
@@ -227,13 +241,15 @@ Use deterministic fixtures, injectable clocks, and condition-based asynchronous 
 
 Never weaken assertions, disable authorization, or suppress failures merely to obtain a passing build.
 
-When blocked, record the exact limitation and continue independent work. Clearly distinguish PASS, FAIL, BLOCKED, and NOT RUN.
+When blocked, record the exact limitation and continue independent work. Clearly distinguish PASS, FAIL, BLOCKED, and
+NOT RUN.
 
 ## Performance and operations
 
 Measure before optimizing or adding infrastructure.
 
 Report performance with:
+
 - Hardware.
 - Dataset.
 - Replica count.
@@ -250,13 +266,15 @@ Provide health probes, graceful shutdown, bounded timeouts, reproducible images,
 
 Run disruptive tests only in explicitly authorized disposable environments.
 
-Do not claim production capacity, high availability, disaster-recovery guarantees, or regulatory compliance without evidence.
+Do not claim production capacity, high availability, disaster-recovery guarantees, or regulatory compliance without
+evidence.
 
 ## Documentation and checkpoints
 
 Use existing documentation where possible.
 
 For active release N, maintain:
+
 - `docs/mvpN-plan.md`
 - `docs/mvpN-progress.md`
 - `docs/mvpN-verification.md`
@@ -266,6 +284,7 @@ Update relevant ADRs, API contracts, runbooks, and policies when behavior change
 Keep documentation concise and consistent with implementation.
 
 Before interruption, record:
+
 - Current phase.
 - Completed acceptance criteria.
 - Remaining work.
@@ -278,6 +297,7 @@ Resume from repository evidence rather than regenerating completed work.
 ## Completion report
 
 Provide a concise final report containing:
+
 - What changed and why.
 - Verification performed and actual results.
 - Remaining blockers or limitations.

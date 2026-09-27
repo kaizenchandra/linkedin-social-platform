@@ -1,14 +1,17 @@
-Paste this into the same IntelliJ Codex project. MVP-4 focuses on **member and company following, saved posts and jobs, personalized discovery, and in-app job alerts**.
+Paste this into the same IntelliJ Codex project. MVP-4 focuses on **member and company following, saved posts and jobs,
+personalized discovery, and in-app job alerts**.
 
 You are my principal backend engineer and implementation agent working inside IntelliJ.
 
 Extend the existing professional networking platform from MVP-3 to MVP-4 through incremental, verified development.
 
-Implement working code, migrations, tests, API contracts, deployment updates, and operational documentation. Do not stop after planning or scaffolding.
+Implement working code, migrations, tests, API contracts, deployment updates, and operational documentation. Do not stop
+after planning or scaffolding.
 
 ## 1. Starting point and execution rules
 
 The intended existing platform contains:
+
 - Java 21, Spring Boot 4.x, Spring Cloud, Spring Security, and Maven.
 - Gateway, member, content, media, messaging, notification, and hiring services.
 - Keycloak for OIDC.
@@ -19,6 +22,7 @@ The intended existing platform contains:
 - Prometheus, Grafana, OpenTelemetry, and Zipkin.
 
 Previous releases should provide:
+
 - Profiles, connections, posts, comments, likes, and chronological feeds.
 - Visibility controls, blocking, images, and private messaging.
 - Content reporting and moderation.
@@ -27,6 +31,7 @@ Previous releases should provide:
 Treat these as intended capabilities, not proof of implementation.
 
 Before editing:
+
 - Read applicable AGENTS.md instructions.
 - Inspect the repository, migrations, contracts, ADRs, and progress records.
 - Run available baseline checks.
@@ -38,7 +43,8 @@ Continue between phases after verification gates pass. Ask questions only for ge
 
 Do not rewrite working services, perform unrelated upgrades, disable security, or claim unexecuted checks passed.
 
-Respect permission boundaries. Default deployment targets are local Docker Compose and a dedicated local Kubernetes environment.
+Respect permission boundaries. Default deployment targets are local Docker Compose and a dedicated local Kubernetes
+environment.
 
 ## 2. MVP-4 objective
 
@@ -53,6 +59,7 @@ Improve discovery and repeat engagement through:
 Keep this release bounded.
 
 Exclude:
+
 - Machine-learning ranking, embeddings, RAG, and external AI APIs.
 - Advertising, payments, premium accounts, and sponsored content.
 - Email, SMS, push delivery, and WebSockets.
@@ -69,16 +76,19 @@ Exclude:
 Extend existing services.
 
 `member-service`
+
 - Member follows.
 - Member discovery suggestions.
 - Authoritative connection and blocking policies.
 
 `content-service`
+
 - Saved posts.
 - Expanded chronological feed.
 - Content authorization.
 
 `hiring-service`
+
 - Company follows.
 - Saved jobs.
 - Company suggestions.
@@ -86,19 +96,22 @@ Extend existing services.
 - Durable job-alert matching and match records.
 
 `notification-service`
+
 - Job-alert notifications.
 - Preferences controlling job-alert notification creation.
 
 Do not create follow, bookmark, recommendation, or search microservices for this release.
 
 Rules:
+
 - No cross-service database joins.
 - No shared persistence entities.
 - Authenticate internal APIs.
 - Keep service-owned authorization authoritative.
 - Use REST for required queries and Kafka for asynchronous notifications.
 - Preserve existing outbox, deduplication, tracing, and migration patterns.
-- Keep privacy-sensitive eligibility out of eventually consistent projections unless every result is reauthorized before exposure.
+- Keep privacy-sensitive eligibility out of eventually consistent projections unless every result is reauthorized before
+  exposure.
 
 Document significant decisions with concise ADRs.
 
@@ -107,12 +120,14 @@ Document significant decisions with concise ADRs.
 Add a one-way follow relationship independent of connections.
 
 Support:
+
 - Follow a member.
 - Unfollow a member.
 - List members I follow.
 - Retrieve my follow status for a member.
 
 Rules:
+
 - Prevent self-following.
 - Prevent duplicate follows through a database constraint.
 - Make repeated follow and unfollow requests idempotent.
@@ -129,11 +144,13 @@ Keep current connection APIs and behavior compatible.
 ## 5. Company following
 
 Support:
+
 - Follow and unfollow a company.
 - List companies I follow.
 - Retrieve my follow status for a company.
 
 Rules:
+
 - One follow per member/company pair.
 - Repeated commands are idempotent.
 - Following does not grant recruiter or owner privileges.
@@ -142,18 +159,21 @@ Rules:
 
 Company follows influence discovery and provide an explicit filter for job search.
 
-Following a company does not automatically create a job alert. Members must explicitly create a saved search with alerts enabled.
+Following a company does not automatically create a job alert. Members must explicitly create a saved search with alerts
+enabled.
 
 Do not introduce company-authored posts.
 
 ## 6. Expanded chronological feed
 
 Extend the existing home feed to include:
+
 - My posts.
 - Posts from accepted connections.
 - MEMBERS-visible posts from members I follow.
 
 Visibility:
+
 - Following never grants access to CONNECTIONS-only posts.
 - Blocking and moderation override feed inclusion.
 - Saved status does not grant access to a post.
@@ -165,6 +185,7 @@ Keep ordering chronological using a stable `(createdAt, id)` cursor.
 Preserve the existing feed API where possible. Add optional fields compatibly.
 
 Implementation:
+
 - Obtain eligible author relationships through bounded internal APIs.
 - Avoid one relationship check or profile lookup per post.
 - Use batched authorization and hydration.
@@ -173,6 +194,7 @@ Implementation:
 - If introducing a documented product limit, enforce it in the write APIs.
 
 Pagination:
+
 - Filter inaccessible content before returning it.
 - Advance the cursor over scanned candidates, not only returned items.
 - Use a bounded scan budget.
@@ -188,6 +210,7 @@ Saved items are private to their owner.
 ### Saved posts
 
 Support:
+
 - Save a currently accessible post.
 - Remove a saved post.
 - List my saved posts ordered by save time.
@@ -197,6 +220,7 @@ Enforce one saved record per member/post pair.
 Recheck current post authorization whenever listing or opening saved content.
 
 If a post becomes deleted, hidden, blocked, or inaccessible:
+
 - Do not return its body, author details, media, or previous preview.
 - Omit it from the normal saved-post response.
 - Preserve enough internal state for safe unsaving and later cleanup.
@@ -205,6 +229,7 @@ If a post becomes deleted, hidden, blocked, or inaccessible:
 ### Saved jobs
 
 Support:
+
 - Save a currently visible published job.
 - Remove a saved job.
 - List my saved jobs.
@@ -212,14 +237,17 @@ Support:
 Enforce one saved record per member/job pair.
 
 If a job closes:
+
 - Show a safe summary with a closed status.
 - Prevent application submission.
 
 If a job is moderated or otherwise inaccessible:
+
 - Omit its content from normal saved-job responses.
 - Do not serve a stale cached preview.
 
 General requirements:
+
 - Make save/unsave operations idempotent.
 - Use deterministic pagination by save timestamp and identifier.
 - Return only the authenticated member’s saved items.
@@ -233,10 +261,12 @@ Provide small, bounded suggestion APIs.
 ### Member suggestions
 
 Suggest eligible members using:
+
 1. Mutual accepted connections.
 2. Stable tie-breaking.
 
 Exclude:
+
 - The acting member.
 - Existing connections.
 - Already-followed members.
@@ -246,7 +276,8 @@ Exclude:
 
 Return a concise reason such as “Connections in common.”
 
-Keep mutual-connection identities and exact counts out of the response unless an existing privacy policy explicitly permits them.
+Keep mutual-connection identities and exact counts out of the response unless an existing privacy policy explicitly
+permits them.
 
 Bound candidate exploration. Document any candidate limit and its effect on completeness.
 
@@ -255,6 +286,7 @@ Do not use protected characteristics, message content, hiring applications, or p
 ### Company suggestions
 
 Suggest companies using:
+
 - Explicit company industry and location.
 - Optional industry/location filters supplied by the member.
 - Stable ordering and tie-breaking.
@@ -272,6 +304,7 @@ Return explanations based on actual matching criteria.
 Test ranking rules with deterministic fixtures.
 
 Measure query cost before introducing caches. If caching is necessary:
+
 - Document TTL and invalidation.
 - Keep authorization checks current.
 - Include all relevant user/filter context in cache keys.
@@ -280,6 +313,7 @@ Measure query cost before introducing caches. If caching is necessary:
 ## 9. Saved job searches
 
 Add private saved searches with:
+
 - A member-defined name.
 - Optional keywords.
 - Optional explicit company IDs.
@@ -291,11 +325,13 @@ Add private saved searches with:
 Use the same matching semantics as interactive job search.
 
 For predictable alerts:
+
 - Resolve company selections to explicit IDs.
 - Do not use a dynamically changing “companies I follow” filter inside a saved alert.
 - The UI/API client may build an explicit selection from followed companies.
 
 Support:
+
 - Create.
 - List.
 - Update.
@@ -303,6 +339,7 @@ Support:
 - Enable and disable alerts.
 
 Default product limits:
+
 - At most 10 saved searches per member.
 - At most 20 explicitly selected companies per search.
 - Reuse existing bounded keyword and field validation.
@@ -320,14 +357,17 @@ Create in-app alerts when a newly published job matches an active saved search.
 Only a transition from draft to published triggers matching.
 
 Do not send new alerts merely because:
+
 - A published job was edited.
 - A hidden job was restored.
 - A worker replayed an event.
 - A saved search was enabled.
 
-Persist an immutable publication snapshot with the job publication event for reproducible matching. Before delivery, verify that the job is still published, unexpired, and not moderated.
+Persist an immutable publication snapshot with the job publication event for reproducible matching. Before delivery,
+verify that the job is still published, unexpired, and not moderated.
 
 Use a durable matching workflow:
+
 - Consume publication events idempotently.
 - Create or resume a matching work item.
 - Process saved searches in bounded batches.
@@ -337,6 +377,7 @@ Use a durable matching workflow:
 - Make failed work observable and replayable.
 
 Eligibility:
+
 - The saved search must have been active, with its current criteria version, when the job was published.
 - It must remain enabled when a new match is committed.
 - A criteria update invalidates unfinished work for the previous version.
@@ -344,27 +385,32 @@ Eligibility:
 - Do not match an old publication against newly created criteria.
 
 If multiple saved searches match the same job:
+
 - Produce at most one job-alert notification per member and job.
 - Enforce this with a database uniqueness rule.
 - Choose a deterministic matching reason.
 - Avoid storing a growing list of all matched searches unless required.
 
 Disabling alerts:
+
 - Prevent new match creation after the disable operation commits.
 - Suppress queued delivery where the current preference or search state makes it ineligible.
-- Document that already delivered notifications are not recalled and that delivery already in progress has a defined race boundary.
+- Document that already delivered notifications are not recalled and that delivery already in progress has a defined
+  race boundary.
 
 Do not promise instantaneous cancellation across service boundaries.
 
 ## 11. Notification preferences
 
 Add a narrow preference for job-alert notifications:
+
 - Enabled by default only for members who explicitly enable a saved-search alert.
 - Members can disable all job-alert notifications.
 
 Do not modify security or transactional notifications as a side effect.
 
 Job-alert notifications:
+
 - Contain minimal identifiers and safe generic text.
 - Resolve current job authorization when opened.
 - Do not preserve a moderated job’s description or stale preview.
@@ -373,6 +419,7 @@ Job-alert notifications:
 Keep match state authoritative in hiring-service and notification delivery state authoritative in notification-service.
 
 Define behavior when eligibility or preference checks are unavailable:
+
 - Retry or suppress conservatively.
 - Never silently assume authorization.
 
@@ -380,19 +427,22 @@ Define behavior when eligibility or preference checks are unavailable:
 
 Use existing Java, Spring, Oracle, and Kafka conventions.
 
-Evaluate Spring Batch for durable matching only if its checkpointing and restart model fit the event-triggered workload. A small durable worker is acceptable when simpler.
+Evaluate Spring Batch for durable matching only if its checkpointing and restart model fit the event-triggered workload.
+A small durable worker is acceptable when simpler.
 
 Do not run an unbounded full scan inside a Kafka listener or HTTP request.
 
 Do not introduce Spark, Samza, Hadoop, HDFS, Pinot, a vector database, or an ML platform for rule-based discovery.
 
 Before adding a dependency:
+
 - Verify compatibility.
 - Pin its version.
 - Explain the concrete need.
 - Update technology decisions.
 
 Preserve:
+
 - At-least-once delivery assumptions.
 - Transactional outbox publishing.
 - Atomic consumer deduplication.
@@ -405,6 +455,7 @@ Preserve:
 ### Phase 0 — Baseline and design
 
 Deliver:
+
 - MVP-3 baseline verification.
 - MVP-4 acceptance checklist.
 - Follow and privacy decision tables.
@@ -414,6 +465,7 @@ Deliver:
 - Migration plan.
 
 Gate:
+
 - Resolve prerequisites required by Phase 1.
 - Record unrelated pre-existing failures separately.
 
@@ -422,6 +474,7 @@ Gate:
 Implement member and company follows, blocking integration, constraints, and APIs.
 
 Gate:
+
 - Concurrent duplicate follows create one relationship.
 - Blocking removes both directions of member follows.
 - Unblocking restores nothing automatically.
@@ -432,6 +485,7 @@ Gate:
 Implement expanded feed eligibility, saved posts, and saved jobs.
 
 Gate:
+
 - Followed-member posts respect visibility.
 - Connected-and-followed authors do not duplicate feed items.
 - Saved content cannot bypass authorization.
@@ -443,6 +497,7 @@ Gate:
 Implement bounded member and company suggestions with explanations.
 
 Gate:
+
 - Exclusion rules hold.
 - Suggestions are deterministic for fixed inputs.
 - No private hiring or messaging data influences results.
@@ -453,6 +508,7 @@ Gate:
 Implement saved-search CRUD, versioning, durable matching, preferences, and notifications.
 
 Gate:
+
 - A matching publication produces one alert.
 - Multiple matching searches still produce one alert.
 - Edits and replays do not generate duplicate alerts.
@@ -463,6 +519,7 @@ Gate:
 ### Phase 5 — Hardening
 
 Extend:
+
 - Security regression tests.
 - Oracle and Kafka integration tests.
 - Failure and replay tests.
@@ -471,6 +528,7 @@ Extend:
 - Metrics and dashboards.
 
 Measure:
+
 - Feed latency and scanned-versus-returned candidates.
 - Discovery query cost.
 - Matching backlog and oldest pending-work age.
@@ -480,6 +538,7 @@ Measure:
 Do not use member IDs, job IDs, or search IDs as metric labels.
 
 Gate:
+
 - No lost committed matches after failures.
 - No unbounded processing or downstream fan-out.
 - Existing release regression tests pass.
@@ -490,6 +549,7 @@ Gate:
 Update Compose, Kubernetes, migrations, CI, runbooks, and IntelliJ HTTP examples.
 
 Gate:
+
 - Fresh setup works.
 - Upgrade from populated MVP-3 data works.
 - End-to-end tests pass against the deployed environment.
@@ -521,13 +581,15 @@ Automate this workflow through the gateway:
 19. Restart a matching worker during a batch and verify recovery.
 20. Run MVP-1, MVP-2, and MVP-3 regression tests.
 
-Use real Oracle and Kafka integration tests for persistence, concurrency, and recovery. Mocks must not be the only evidence.
+Use real Oracle and Kafka integration tests for persistence, concurrency, and recovery. Mocks must not be the only
+evidence.
 
 Use isolated test data and condition-based asynchronous waits.
 
 ## 15. Progress and completion
 
 Maintain:
+
 - `docs/mvp4-plan.md`
 - `docs/mvp4-progress.md`
 - `docs/mvp4-verification.md`
@@ -536,6 +598,7 @@ Maintain:
 Update existing architecture, ADRs, contracts, technology decisions, and runbooks.
 
 At each phase boundary:
+
 - Summarize implemented behavior.
 - Record executed checks.
 - Separate PASS, FAIL, BLOCKED, and NOT RUN.
@@ -544,6 +607,7 @@ At each phase boundary:
 If interrupted, save a precise checkpoint and resume from repository evidence.
 
 MVP-4 is complete when:
+
 - Following, expanded feeds, saved items, discovery, and job alerts work through real APIs.
 - Privacy and company isolation remain intact.
 - Matching is bounded, durable, restartable, and deduplicated.
@@ -554,4 +618,5 @@ MVP-4 is complete when:
 
 Do not claim machine-learning personalization, production readiness, or internet-scale capacity.
 
-Start by inspecting MVP-3 and running baseline verification. Then implement MVP-4 phase by phase until the acceptance criteria are satisfied.
+Start by inspecting MVP-3 and running baseline verification. Then implement MVP-4 phase by phase until the acceptance
+criteria are satisfied.
