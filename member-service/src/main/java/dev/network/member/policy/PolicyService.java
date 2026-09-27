@@ -16,8 +16,15 @@ public class PolicyService {
   private final MemberRepository members;
   private final ConnectionRepository connections;
   private final Clock clock;
+  private final org.springframework.jdbc.core.JdbcTemplate db;
 
-  public PolicyService(BlockRepository b, MemberRepository m, ConnectionRepository c, Clock clock) {
+  public PolicyService(
+      BlockRepository b,
+      MemberRepository m,
+      ConnectionRepository c,
+      Clock clock,
+      org.springframework.jdbc.core.JdbcTemplate db) {
+    this.db = db;
     blocks = b;
     members = m;
     connections = c;
@@ -72,6 +79,13 @@ public class PolicyService {
       b.createdAt = clock.instant();
       blocks.save(b);
     }
+    db.update(
+        "DELETE FROM member_follows WHERE (follower_id=? AND followed_id=?) OR (follower_id=? AND"
+            + " followed_id=?)",
+        actor,
+        target,
+        target,
+        actor);
     connections
         .findByLowIdAndHighId(
             actor.compareTo(target) < 0 ? actor : target,

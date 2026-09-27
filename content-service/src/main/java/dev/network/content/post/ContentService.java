@@ -279,12 +279,12 @@ public class ContentService {
             p.id));
   }
 
-  private PostView view(Post p, List<String> media) {
+  PostView view(Post p, List<String> media) {
     return new PostView(
         p.id, p.authorId, p.body, p.createdAt, p.updatedAt, p.version, p.visibility, media);
   }
 
-  private Map<String, List<String>> mediaReferences(List<String> ids) {
+  Map<String, List<String>> mediaReferences(List<String> ids) {
     var result = new HashMap<String, List<String>>();
     if (ids.isEmpty()) return result;
     db.query(

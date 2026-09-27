@@ -82,11 +82,19 @@ public class MemberClient {
   }
 
   public List<String> accepted(String member) {
+    return relationships(member, "connections");
+  }
+
+  public List<String> followed(String member) {
+    return relationships(member, "follows");
+  }
+
+  private List<String> relationships(String member, String kind) {
     try {
       var ids =
           client
               .get()
-              .uri(memberUrl + "/internal/v1/connections/{id}", member)
+              .uri(memberUrl + "/internal/v1/" + kind + "/{id}", member)
               .headers(h -> h.setBearerAuth(token()))
               .retrieve()
               .body(new ParameterizedTypeReference<List<String>>() {});
@@ -96,7 +104,7 @@ public class MemberClient {
     } catch (Exception e) {
       throw new ResponseStatusException(
           HttpStatus.SERVICE_UNAVAILABLE,
-          "Current connections unavailable; retry the complete feed request");
+          "Current relationships unavailable; retry the complete feed request");
     }
   }
 }

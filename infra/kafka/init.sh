@@ -2,7 +2,7 @@
 set -euo pipefail
 source /opt/network/client-properties.sh
 server=${KAFKA_BOOTSTRAP:-kafka:19092}
-for topic in network.events.v1 network.events.v1.DLT; do
+for topic in network.events.v1 network.events.v1.DLT network.hiring.v1.DLT; do
  /opt/kafka/bin/kafka-topics.sh --bootstrap-server "$server" --command-config /tmp/admin.properties --create --if-not-exists --topic "$topic" --partitions 3 --replication-factor 1
  done
 for user in member content messaging hiring; do
@@ -14,3 +14,7 @@ for user in member content messaging hiring; do
 for user in member content notification messaging hiring; do
  /opt/kafka/bin/kafka-acls.sh --bootstrap-server "$server" --command-config /tmp/admin.properties --add --allow-principal "User:$user" --operation IdempotentWrite --cluster
  done
+
+/opt/kafka/bin/kafka-acls.sh --bootstrap-server "$server" --command-config /tmp/admin.properties --add --allow-principal User:hiring --operation Read --operation Describe --topic network.events.v1
+/opt/kafka/bin/kafka-acls.sh --bootstrap-server "$server" --command-config /tmp/admin.properties --add --allow-principal User:hiring --operation Read --group hiring-alerts-v1
+/opt/kafka/bin/kafka-acls.sh --bootstrap-server "$server" --command-config /tmp/admin.properties --add --allow-principal User:hiring --operation Write --operation Describe --topic network.hiring.v1.DLT

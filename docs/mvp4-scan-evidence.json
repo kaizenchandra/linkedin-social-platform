@@ -1,0 +1,48 @@
+{
+  "scanner": "Trivy0.74.0 pinned digest",
+  "scannedOn": "2026-09-27",
+  "images": {
+    "member-service": {
+      "artifact": "professional-network/member-service:0.4.0",
+      "highCriticalFindings": 0,
+      "imageId": "sha256:e90c780e88672c52e98babf2620ea14362a13628ab1e2167dcbb42c2e455137b",
+      "scannedAt": "2026-09-27T09:44:09.662947419Z"
+    },
+    "media-service": {
+      "artifact": "professional-network/media-service:0.4.0",
+      "highCriticalFindings": 0,
+      "imageId": "sha256:ef2a72bafd87bccc7ca2de32fea351dc02d233098d3cf35a9aeb592a85f78881",
+      "scannedAt": "2026-09-27T09:44:18.318032096Z"
+    },
+    "messaging-service": {
+      "artifact": "professional-network/messaging-service:0.4.0",
+      "highCriticalFindings": 0,
+      "imageId": "sha256:5c374fcceb6bfd93e3198ce98e022120b97ddfe9ef61266c23c3ed1f40542b25",
+      "scannedAt": "2026-09-27T09:44:20.172201332Z"
+    },
+    "notification-service": {
+      "artifact": "professional-network/notification-service:0.4.0",
+      "highCriticalFindings": 0,
+      "imageId": "sha256:92f7ad99df7c630cfc4f52d45d7a2975ac45d20fd71765568f88f685d9685d47",
+      "scannedAt": "2026-09-27T09:44:15.101409783Z"
+    },
+    "hiring-service": {
+      "artifact": "professional-network/hiring-service:0.4.0",
+      "highCriticalFindings": 0,
+      "imageId": "sha256:746d98d852c6a10f04539e7ccae624809257d24cc2d7f5152eb2ca023b4e59d2",
+      "scannedAt": "2026-09-27T09:44:21.917393714Z"
+    },
+    "content-service": {
+      "artifact": "professional-network/content-service:0.4.0",
+      "highCriticalFindings": 0,
+      "imageId": "sha256:4d41160f31192dee3f3bfdaf9cc334aca9327a63b0f5bf6c8fd4b76b54dbab8f",
+      "scannedAt": "2026-09-27T09:44:11.590272018Z"
+    },
+    "api-gateway": {
+      "artifact": "professional-network/api-gateway:0.4.0",
+      "highCriticalFindings": 0,
+      "imageId": "sha256:c17c26aee9af519ad7ee1d471e75b58f358f4456bd94cfe0baddbae4af6d3022",
+      "scannedAt": "2026-09-27T09:44:16.748002041Z"
+    }
+  }
+}

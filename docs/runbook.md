@@ -205,8 +205,54 @@ Choose `local` in IntelliJ and use `requests/hiring.http`. Each required actor n
 
 For backup verification stop all seven application services while Oracle/object storage remain running, then run `check-mvp3-backup.py` and `BACKUP_EVIDENCE=docs/mvp3-object-backup-evidence.json python3 scripts/check-object-backup.py`. Data Pump restores six schemas into isolated fixtures and compares table counts, application snapshots/statuses, personal content and message read positions. Keep Oracle/object/Keycloak backup policies coordinated. The versioned [hiring retention policy](hiring-retention-policy.json) is operator-managed; no automated purge is implied. Withdrawal immediately redacts recruiter-facing cover/profile responses; stored history, applicant access, previously viewed data and backups remain.
 
-For kind, stop Compose and optional observability first to release8080/8180, then run `scripts/deploy-kind.sh`. It loads seven0.3.0 images, preserves existing PVCs, provisions missing schemas/scopes, completes uniquely named MVP-3 migration/ACL jobs, and rolls out applications using `.local/kubeconfig`. Run `auth-hiring-setup.py`, `smoke-mvp3.py` and `check-mvp3-restart.py kind`. Do not delete a retained cluster to upgrade it. The optional Compose monitoring profile scrapes seven authenticated targets, includes hiring latency/5xx panels and alerts, and traces HTTP plus outbox/Kafka. It is separate from the basic kind deployment.
+For kind, stop Compose and optional observability first to release8080/8180, then run `scripts/deploy-kind.sh`. The current script loads seven 0.4.0 images, preserves existing PVCs, provisions required schemas/scopes, completes uniquely named MVP-4 migration/ACL jobs, and rolls out applications using `.local/kubeconfig`. Run `auth-hiring-setup.py`, `smoke-mvp3.py` and `check-mvp3-restart.py kind`. Do not delete a retained cluster to upgrade it. The optional Compose monitoring profile scrapes seven authenticated targets, includes hiring latency/5xx panels and alerts, and traces HTTP plus outbox/Kafka. It is separate from the basic kind deployment.
 
 Six business pools ×8 =48 connections per single-replica stack; budget additional replicas, rolling overlap, relay transactions, migration and admin connections. Current local deployment is single-node, with no HA, employer-verification, legal-compliance or production-capacity claim. See mvp3-verification.md for actual executed deployment and recovery evidence.
 
 The local Zipkin memory profile retains at most10000 spans with a256MiB heap in a512MiB container. Older traces are evicted and a backend restart loses them; this is intentional bounded development storage. The default image heap exhausted during MVP-3 load testing before this configuration was added. Keep trace sampling/storage policy explicit when measuring or deploying elsewhere.
+
+## MVP-4 upgrade and operations
+
+Use the same seven services and existing secrets. Artifact version0.4.0; no infrastructure/library upgrades. From MVP-3:
+
+```sh
+python3 scripts/verify-oracle-local.py   # disposable schemas, no live-worker interference
+# Maintenance window; preserve every volume and .env.
+docker compose stop api-gateway member-service content-service notification-service media-service messaging-service hiring-service
+docker compose build
+docker compose run --rm kafka-init
+docker compose up -d --wait notification-service
+docker compose up -d --wait --wait-timeout 240
+python3 scripts/auth-hiring-setup.py
+python3 scripts/smoke-mvp4.py
+```
+
+Migrations add member7, content8, hiring8–11 and notification5; media/messaging schemas stay unchanged. No old published jobs are backfilled into publication snapshots or alerts. Deploy the new consumer before hiring starts publishing new types; the maintenance window also prevents old block handlers leaving follows behind. Application rollback does not reverse migrations or queued events. Prefer a forward fix; a coordinated pre-upgrade restore loses subsequent writes. Do not run old consumers against the expanded event stream.
+
+Member/company follows each cap at500; connections retain their existing500 limit. Following gives no connection, messaging or company role. Blocking deletes both directions of follows and removes connections atomically in member-service. Bookmarks are private and confer no visibility. Feed/bookmark cursors may return an empty page with a next cursor; clients must continue from that cursor. Page relationships are current, not a frozen snapshot. Saved closed/expired jobs return only safe summaries; hidden jobs are omitted. No inaccessible bookmark counts are returned.
+
+Saved searches cap at10/member and20 explicit companies/search. Keywords are case-insensitive literal AND terms (max8,100 characters), normalized whitespace; location is a literal substring. `%`/`_` are escaped. No indexed full-text claim. Company-follow filtering is interactive only; alert company selections are fixed IDs. Create/edit/re-enable is prospective, using the serialized eligibility epoch. A criteria change invalidates unfinished work for its prior version. The deterministic winning search is the smallest eligible matching search ID; disabling that winner conservatively suppresses queued delivery even if another overlapping search remains enabled. No replacement/backfill alert is created.
+
+`/api/v1/notifications/preferences/job-alerts` reports effective consent plus the global setting. Default global permission creates nothing until an explicitly enabled search matches. Global disable affects job alerts only. Local preference updates serialize with notification persistence. The successful remote match/search/job eligibility check is the cancellation boundary for delivery already in progress; later cross-service changes cannot atomically recall a notification. Already delivered notifications remain generic identifiers; opening `/jobs/{id}` reauthorizes current visibility/deadline. A publisher may receive an alert they explicitly opted into; no unnecessary actor notification is generated otherwise.
+
+Matching uses at most25 transactions/tick, each handling one owner's at-most10 searches, with durable owner cursor and unique(job,member) match. `network.alerts.delay` defaults1000ms; `network.alerts.enabled=false` pauses scheduling without deleting work. Kafka publication ingestion only creates durable work. Outbox backlog1000 applies backpressure. Inspect low-cardinality backlog, oldest age, FAILED work, retry/DLT and scanned/returned panels. Failure details are categories, never search/job text. Three Kafka retries precede DLT; five matcher failures precede FAILED. Repair the cause before replay.
+
+- Publication ingestion DLT: `network.hiring.v1.DLT`; notification delivery DLT: `network.events.v1.DLT`. Use the authenticated admin tools described above, preserving eventId, aggregate key and envelope. Validate against contracts/event-v1.schema.json; do not mint replacement IDs. Publication replay resumes the existing work item; it does not reset DONE or the cursor.
+- Failed matcher: a platform moderator/operator calls `POST /api/v1/hiring/moderation/alerts/{jobId}/replay`. Only FAILED changes to PENDING; checkpoint and match uniqueness remain. Ordinary members receive403.
+- Notification eligibility/consent endpoints use the existing narrow `hiring.recipients` service scope, assigned to notification-internal. Member tokens and generic personal-policy scope do not authorize them. Dependency errors retry; no default authorization on failure.
+
+Deleted searches retain a private tombstone; hidden/deleted saved resources retain only service-owned references for unsave/approved future cleanup. Publication snapshots, match records and deduplication rows are retained for replay. No automatic purge or complete-erasure claim; define retention before introducing cleanup, and include backups in that policy.
+
+```sh
+python3 scripts/check-mvp4-recovery.py       # disruptive dedicated Compose fixtures only
+.local/venv/bin/python scripts/check-mvp4-contracts-security.py
+python3 scripts/load-mvp4.py               # bounded 20s, concurrency 4; records actual tracing configuration
+python3 scripts/check-mvp4-upgrade.py      # isolated populated MVP-3 schemas
+python3 scripts/check-mvp4-restart.py       # or kind
+# Stop apps before this exact-state backup comparison:
+python3 scripts/check-mvp4-backup.py
+python3 scripts/check-mvp4-fresh-compose.py # temporary project/volumes; restores original stack
+python3 scripts/check-mvp4-kind-release.py  # dedicated retained cluster; restores Compose on exit
+```
+
+Use requests/mvp4.http in IntelliJ. Long test runs should refresh supported test sessions, not extend token lifetime. Enable the optional observability Compose file before `check-mvp4-telemetry.py`; basic Compose deliberately has no trace agent. Kind uses uniquely named MVP-4 migration/ACL jobs and seven0.4.0 images. Stop Compose before starting the retained dedicated kind node to release8080/8180; never stop unrelated listeners. `MVP4_BACKEND=kind python3 scripts/smoke-mvp4.py` runs the gateway journey and its notification restart using the dedicated kubeconfig. These remain single-node development deployments.

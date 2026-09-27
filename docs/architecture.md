@@ -114,3 +114,33 @@ erDiagram
 ```
 
 An owner_id pointer references exactly one accepted company member; transfer changes that pointer atomically and leaves the previous owner as recruiter. Application snapshots preserve the fetched member version and locked job version. Reports and hidden state do not change job lifecycle.
+
+## MVP-4 discovery and alerts
+
+Member owns directed follows and bounded mutual-connection discovery. Content owns private saved posts and batched current-policy feed scans. Hiring owns company follows, saved jobs/searches, immutable publication snapshots, durable matching work and unique member/job matches. Notification owns its narrow global alert preference and delivered-alert deduplication. No new service or cross-schema join.
+
+```mermaid
+sequenceDiagram
+ participant R as Recruiter
+ participant H as Hiring
+ participant O as Oracle hiring schema
+ participant K as Kafka
+ participant W as Hiring matcher
+ participant N as Notification
+ R->>H: Publish draft
+ H->>O: Lock job + eligibility epoch; snapshot + outbox
+ O-->>H: Commit
+ H->>K: Acknowledged outbox relay
+ K->>H: Publication event
+ H->>O: Idempotent durable work row
+ W->>O: Lock work + member; bounded searches; current job lock
+ W->>O: Match + notification outbox + checkpoint atomically
+ W->>K: Existing outbox relay
+ K->>N: Generic job alert
+ N->>N: Lock member preference
+ N->>H: Authenticated current match/search/job eligibility
+ H-->>N: Eligible or suppress; errors retry
+ N->>N: Dedup + notification commit
+```
+
+Saved-search changes and publications serialize through an epoch row; no historical matching. Match creation serializes with disabling/deletion through a member row. Notification delivery's successful remote eligibility check is the explicit cross-service cancellation race boundary. See discovery-and-alert-semantics.md and ADR012.

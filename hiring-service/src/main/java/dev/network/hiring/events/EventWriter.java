@@ -28,7 +28,7 @@ public class EventWriter {
     write(type, aggregate, version, Map.of("actorId", actor, "companyId", company));
   }
 
-  private void write(String type, String aggregate, long version, Map<String,String> payload) {
+  public void write(String type, String aggregate, long version, Map<String, String> payload) {
     String id = UUID.randomUUID().toString();
     var row = new Outbox();
     row.id = id;

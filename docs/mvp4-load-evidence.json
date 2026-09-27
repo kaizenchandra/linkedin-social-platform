@@ -1,0 +1,52 @@
+{
+  "hardware": "macOS-27.0-arm64-arm-64bit-Mach-O",
+  "architecture": "arm64",
+  "dockerResources": "11 CPUs / 9435414528 bytes",
+  "dataset": {
+    "newFeedPosts": 100,
+    "realActors": 3,
+    "publishedMatchingJobs": 5,
+    "explicitMatchingSearches": 1,
+    "retainedOtherTestData": true
+  },
+  "replicas": {
+    "gateway": 1,
+    "member": 1,
+    "content": 1,
+    "hiring": 1,
+    "notification": 1
+  },
+  "concurrency": 4,
+  "durationSeconds": 20.008292457998323,
+  "requests": 9785,
+  "requestsPerSecond": 489.04722981937635,
+  "p50Ms": 5.55983300000662,
+  "p95Ms": 19.38704200074426,
+  "p99Ms": 28.149833000497892,
+  "errors": [],
+  "publicationToAlertMs": [
+    1744.248458002403,
+    2234.6511670002656,
+    1940.801749999082,
+    2220.660166000016,
+    2173.2154579985945
+  ],
+  "resourceSnapshot": [
+    "professional-network-mvp-hiring-service-1 CPU=2.41% MEM=507.9MiB / 640MiB",
+    "professional-network-mvp-content-service-1 CPU=0.70% MEM=543.7MiB / 640MiB",
+    "professional-network-mvp-api-gateway-1 CPU=0.17% MEM=327MiB / 640MiB",
+    "professional-network-mvp-media-service-1 CPU=7.29% MEM=419.7MiB / 640MiB",
+    "professional-network-mvp-member-service-1 CPU=0.53% MEM=509.6MiB / 640MiB",
+    "professional-network-mvp-messaging-service-1 CPU=2.76% MEM=425.3MiB / 640MiB",
+    "professional-network-mvp-notification-service-1 CPU=0.99% MEM=495.5MiB / 640MiB",
+    "professional-network-mvp-zipkin-1 CPU=0.11% MEM=232MiB / 512MiB",
+    "professional-network-mvp-kafka-1 CPU=2.57% MEM=470.5MiB / 8.787GiB",
+    "professional-network-mvp-keycloak-1 CPU=0.41% MEM=427.2MiB / 8.787GiB",
+    "professional-network-mvp-oracle-1 CPU=5.01% MEM=1GiB / 8.787GiB",
+    "professional-network-mvp-prometheus-1 CPU=0.33% MEM=83.06MiB / 8.787GiB",
+    "professional-network-mvp-grafana-1 CPU=1.12% MEM=203.5MiB / 8.787GiB",
+    "professional-network-mvp-object-store-1 CPU=1.77% MEM=93.34MiB / 512MiB"
+  ],
+  "limitations": "Local mixed warm read workload; publication metric includes draft creation and polling resolution250ms. Not saturation or production capacity.",
+  "traceAgentEnabled": false
+}

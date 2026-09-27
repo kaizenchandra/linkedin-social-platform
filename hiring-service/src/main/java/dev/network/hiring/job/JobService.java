@@ -19,8 +19,14 @@ public class JobService {
   private final JobRepository repo;
   private final CompanyService companies;
   private final JdbcTemplate db;
+  private final dev.network.hiring.alerts.PublicationWriter publications;
 
-  public JobService(JobRepository repo, CompanyService companies, JdbcTemplate db) {
+  public JobService(
+      JobRepository repo,
+      CompanyService companies,
+      JdbcTemplate db,
+      dev.network.hiring.alerts.PublicationWriter publications) {
+    this.publications = publications;
     this.repo = repo;
     this.companies = companies;
     this.db = db;
@@ -171,6 +177,7 @@ public class JobService {
     } else throw new IllegalArgumentException("Unknown job action");
     j.updatedAt = companies.now();
     repo.flush();
+    if (action.equals("publish")) publications.publish(j, actor);
     companies.audit(c.id, actor, "JOB_" + j.state, id, "Job lifecycle changed");
     return view(j);
   }
@@ -233,38 +240,35 @@ public class JobService {
       Job.Employment employment,
       String cursor,
       int size) {
+    return search(q, company, location, work, employment, cursor, size, null, false);
+  }
+
+  @Transactional(readOnly = true)
+  public HiringPages.Slice<View> search(
+      String q,
+      String company,
+      String location,
+      Job.Work work,
+      Job.Employment employment,
+      String cursor,
+      int size,
+      String actor,
+      boolean followedCompanies) {
     Pages.size(size);
-    if (q == null) q = "";
-    if (q.length() > 100 || location != null && location.length() > 150)
-      throw new IllegalArgumentException("Search too long");
+    var criteria =
+        new SearchCriteria(
+            q, company == null ? List.of() : List.of(company), location, work, employment);
     var args = new ArrayList<Object>();
-    String where = "state='PUBLISHED' AND hidden=0 AND (deadline IS NULL OR deadline>?)";
     args.add(Timestamp.from(companies.now()));
-    if (!q.isBlank()) {
-      var terms = q.strip().split("\\s+");
-      if (terms.length > 8) throw new IllegalArgumentException("At most8 search terms");
-      for (String t : terms) {
-        where += " AND (LOWER(title) LIKE ? ESCAPE '!' OR LOWER(description) LIKE ? ESCAPE '!')";
-        args.add(term(t));
-        args.add(term(t));
-      }
-    }
-    if (company != null) {
-      UUID.fromString(company);
-      where += " AND company_id=?";
-      args.add(company);
-    }
-    if (location != null && !location.isBlank()) {
-      where += " AND LOWER(location) LIKE ? ESCAPE '!'";
-      args.add(term(location.strip()));
-    }
-    if (work != null) {
-      where += " AND work_arrangement=?";
-      args.add(work.name());
-    }
-    if (employment != null) {
-      where += " AND employment_type=?";
-      args.add(employment.name());
+    String where =
+        "state='PUBLISHED' AND hidden=0 AND (deadline IS NULL OR deadline>?)"
+            + criteria.sql("", args);
+    if (followedCompanies) {
+      if (actor == null) throw new IllegalArgumentException("Authenticated actor required");
+      where +=
+          " AND EXISTS(SELECT 1 FROM company_follows f WHERE f.company_id=jobs.company_id AND"
+              + " f.member_id=?)";
+      args.add(actor);
     }
     where += HiringPages.after(cursor, args, "published_at");
     args.add(size + 1);

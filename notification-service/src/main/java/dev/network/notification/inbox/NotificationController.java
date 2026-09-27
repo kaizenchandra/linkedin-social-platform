@@ -28,7 +28,10 @@ public class NotificationController {
       String actorId,
       String resourceId,
       Instant occurredAt,
-      Instant readAt) {}
+      Instant readAt,
+      @com.fasterxml.jackson.annotation.JsonInclude(
+              com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL)
+          String message) {}
 
   @GetMapping
   @Transactional(readOnly = true)
@@ -57,6 +60,13 @@ public class NotificationController {
   }
 
   private View view(Notification n) {
-    return new View(n.id, n.eventType, n.actorId, n.resourceId, n.occurredAt, n.readAt);
+    return new View(
+        n.id,
+        n.eventType,
+        n.actorId,
+        n.resourceId,
+        n.occurredAt,
+        n.readAt,
+        n.eventType.equals("hiring.job.alert") ? "A new job matches your saved search." : null);
   }
 }

@@ -35,7 +35,9 @@ class OracleNotificationIT {
     }
   }
 
-  @org.springframework.test.context.bean.override.mockito.MockitoBean dev.network.web.ServiceHttp http;
+  @org.springframework.test.context.bean.override.mockito.MockitoBean
+  dev.network.web.ServiceHttp http;
+
   @Autowired org.springframework.jdbc.core.JdbcTemplate db;
   @Autowired dev.network.notification.events.NotificationConsumer consumer;
   @Autowired dev.network.notification.inbox.NotificationRepository notifications;
@@ -72,6 +74,7 @@ class OracleNotificationIT {
             .filter(n -> n.actorId().equals(actor))
             .findFirst()
             .orElseThrow();
+    assertThat(json.readTree(json.writeValueAsString(note)).has("message")).isFalse();
     var first = inbox.read(jwt, note.id());
     assertThat(inbox.read(jwt, note.id()).readAt()).isEqualTo(first.readAt());
     String own = UUID.randomUUID().toString();
@@ -85,25 +88,147 @@ class OracleNotificationIT {
   void invalidEnvelopeCannotCommit() {
     assertThatThrownBy(() -> consumer.consume("{}")).isInstanceOf(IllegalArgumentException.class);
   }
+
   @Test
   void hiringFanoutRetryAndReplayAreAtomic() {
-    String eventId=UUID.randomUUID().toString(), actor=UUID.randomUUID().toString();
-    String owner=UUID.randomUUID().toString(), recruiter=UUID.randomUUID().toString();
-    var event=Map.of("eventId",eventId,"eventType","hiring.application.submitted","schemaVersion",1,
-      "occurredAt","2026-09-27T00:00:00Z","aggregateId",UUID.randomUUID().toString(),
-      "aggregateVersion",0,"producer","hiring-service","correlationId",eventId,"causationId",eventId,
-      "payload",Map.of("actorId",actor,"companyId",UUID.randomUUID().toString()));
-    String message=json.writeValueAsString(event);
-    org.mockito.Mockito.when(http.post(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.eq(dev.network.notification.events.NotificationConsumer.Recipients.class)))
-      .thenThrow(new IllegalStateException("Recipient service unavailable"));
-    assertThatThrownBy(()->consumer.consume(message)).isInstanceOf(IllegalStateException.class);
-    assertThat(db.queryForObject("SELECT COUNT(*) FROM consumed_events WHERE event_id=?",Long.class,eventId)).isZero();
+    String eventId = UUID.randomUUID().toString(), actor = UUID.randomUUID().toString();
+    String owner = UUID.randomUUID().toString(), recruiter = UUID.randomUUID().toString();
+    var event =
+        Map.of(
+            "eventId",
+            eventId,
+            "eventType",
+            "hiring.application.submitted",
+            "schemaVersion",
+            1,
+            "occurredAt",
+            "2026-09-27T00:00:00Z",
+            "aggregateId",
+            UUID.randomUUID().toString(),
+            "aggregateVersion",
+            0,
+            "producer",
+            "hiring-service",
+            "correlationId",
+            eventId,
+            "causationId",
+            eventId,
+            "payload",
+            Map.of("actorId", actor, "companyId", UUID.randomUUID().toString()));
+    String message = json.writeValueAsString(event);
+    org.mockito.Mockito.when(
+            http.post(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.eq(
+                    dev.network.notification.events.NotificationConsumer.Recipients.class)))
+        .thenThrow(new IllegalStateException("Recipient service unavailable"));
+    assertThatThrownBy(() -> consumer.consume(message)).isInstanceOf(IllegalStateException.class);
+    assertThat(
+            db.queryForObject(
+                "SELECT COUNT(*) FROM consumed_events WHERE event_id=?", Long.class, eventId))
+        .isZero();
     assertThat(notifications.countByEventId(eventId)).isZero();
-    org.mockito.Mockito.when(http.post(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.eq(dev.network.notification.events.NotificationConsumer.Recipients.class)))
-      .thenReturn(new dev.network.notification.events.NotificationConsumer.Recipients(List.of(owner,recruiter,actor,recruiter)));
-    consumer.consume(message);consumer.consume(message);
+    org.mockito.Mockito.when(
+            http.post(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.eq(
+                    dev.network.notification.events.NotificationConsumer.Recipients.class)))
+        .thenReturn(
+            new dev.network.notification.events.NotificationConsumer.Recipients(
+                List.of(owner, recruiter, actor, recruiter)));
+    consumer.consume(message);
+    consumer.consume(message);
     assertThat(notifications.countByEventId(eventId)).isEqualTo(2);
-    assertThat(db.queryForObject("SELECT COUNT(*) FROM consumed_events WHERE event_id=?",Long.class,eventId)).isEqualTo(1);
+    assertThat(
+            db.queryForObject(
+                "SELECT COUNT(*) FROM consumed_events WHERE event_id=?", Long.class, eventId))
+        .isEqualTo(1);
   }
 
+  @Autowired dev.network.notification.preferences.JobAlertPreferences preferences;
+
+  @Test
+  void alertPreferenceEligibilityAndSemanticDeduplicationAreAtomic() {
+    String actor = UUID.randomUUID().toString(),
+        recipient = UUID.randomUUID().toString(),
+        job = UUID.randomUUID().toString(),
+        match = UUID.randomUUID().toString();
+    var e =
+        new HashMap<String, Object>(
+            Map.of(
+                "eventId",
+                UUID.randomUUID().toString(),
+                "eventType",
+                "hiring.job.alert",
+                "schemaVersion",
+                1,
+                "occurredAt",
+                "2026-09-27T00:00:00Z",
+                "aggregateId",
+                job,
+                "aggregateVersion",
+                1,
+                "producer",
+                "hiring-service",
+                "correlationId",
+                job,
+                "causationId",
+                job,
+                "payload",
+                Map.of("actorId", actor, "recipientId", recipient, "matchId", match)));
+    org.mockito.Mockito.when(
+            http.post(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.eq(Boolean.class)))
+        .thenThrow(new IllegalStateException("Dependency unavailable"));
+    assertThatThrownBy(() -> consumer.consume(json.writeValueAsString(e)))
+        .isInstanceOf(IllegalStateException.class);
+    assertThat(
+            db.queryForObject(
+                "SELECT COUNT(*) FROM consumed_events WHERE event_id=?",
+                Long.class,
+                e.get("eventId")))
+        .isZero();
+    org.mockito.Mockito.when(
+            http.post(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.eq(Boolean.class)))
+        .thenReturn(true);
+    consumer.consume(json.writeValueAsString(e));
+    consumer.consume(json.writeValueAsString(e));
+    e.put("eventId", UUID.randomUUID().toString());
+    consumer.consume(json.writeValueAsString(e));
+    assertThat(
+            db.queryForObject(
+                "SELECT COUNT(*) FROM notifications WHERE recipient_id=? AND resource_id=?",
+                Long.class,
+                recipient,
+                job))
+        .isEqualTo(1);
+    var principal =
+        org.springframework.security.oauth2.jwt.Jwt.withTokenValue("test")
+            .header("alg", "test")
+            .subject(recipient)
+            .build();
+    assertThat(
+            inbox.list(principal, 0, 100).stream()
+                .filter(n -> n.resourceId().equals(job))
+                .findFirst()
+                .orElseThrow()
+                .message())
+        .isEqualTo("A new job matches your saved search.");
+    preferences.set(recipient, false);
+    e.put("aggregateId", UUID.randomUUID().toString());
+    e.put("eventId", UUID.randomUUID().toString());
+    e.put(
+        "payload",
+        Map.of(
+            "actorId", actor, "recipientId", recipient, "matchId", UUID.randomUUID().toString()));
+    consumer.consume(json.writeValueAsString(e));
+    assertThat(notifications.countByEventId((String) e.get("eventId"))).isZero();
+  }
 }

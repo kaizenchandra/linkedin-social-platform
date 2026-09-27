@@ -68,6 +68,123 @@ class OracleProfileIT {
     assertThatThrownBy(() -> policy.block(a, a)).isInstanceOf(IllegalArgumentException.class);
   }
 
+  @Autowired dev.network.member.follow.FollowService follows;
+
+  @Test
+  void followsAreIndependentIdempotentAndRemovedByBlocking() throws Exception {
+    String a = UUID.randomUUID().toString(), b = UUID.randomUUID().toString();
+    for (String id : java.util.List.of(a, b))
+      profiles.save(
+          jwt(id), new ProfileController.Input("Follower", null, null, null, java.util.List.of()));
+    var barrier = new java.util.concurrent.CyclicBarrier(2);
+    try (var pool = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+      var one =
+          pool.submit(
+              () -> {
+                barrier.await();
+                follows.follow(a, b);
+                return true;
+              });
+      var two =
+          pool.submit(
+              () -> {
+                barrier.await();
+                follows.follow(a, b);
+                return true;
+              });
+      assertThat(one.get(20, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+      assertThat(two.get(20, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+    }
+    assertThat(follows.ids(a)).containsExactly(b);
+    assertThat(connections.accepted(a)).isEmpty();
+    follows.follow(b, a);
+    var c = connections.request(a, b);
+    connections.command(b, c.id(), "accept");
+    connections.command(a, c.id(), "remove");
+    assertThat(follows.status(a, b)).isTrue();
+    policy.block(a, b);
+    assertThat(follows.ids(a)).isEmpty();
+    assertThat(follows.ids(b)).isEmpty();
+    assertThatThrownBy(() -> follows.follow(b, a))
+        .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+    policy.unblock(a, b);
+    assertThat(follows.ids(a)).isEmpty();
+    follows.unfollow(a, b);
+    follows.unfollow(a, b);
+    assertThatThrownBy(() -> follows.follow(a, a)).isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void followRacingWithBlockNeverSurvivesBlock() throws Exception {
+    String a = UUID.randomUUID().toString(), b = UUID.randomUUID().toString();
+    for (String id : java.util.List.of(a, b))
+      profiles.save(
+          jwt(id), new ProfileController.Input("Race", null, null, null, java.util.List.of()));
+    var barrier = new java.util.concurrent.CyclicBarrier(2);
+    try (var pool = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+      var follow =
+          pool.submit(
+              () -> {
+                barrier.await();
+                try {
+                  follows.follow(a, b);
+                } catch (org.springframework.web.server.ResponseStatusException e) {
+                  assertThat(e.getStatusCode().value()).isEqualTo(404);
+                }
+                return true;
+              });
+      var block =
+          pool.submit(
+              () -> {
+                barrier.await();
+                policy.block(b, a);
+                return true;
+              });
+      follow.get(20, java.util.concurrent.TimeUnit.SECONDS);
+      block.get(20, java.util.concurrent.TimeUnit.SECONDS);
+    }
+    assertThat(follows.status(a, b)).isFalse();
+  }
+
+  @Autowired dev.network.member.discovery.MemberDiscovery discovery;
+
+  @Test
+  void mutualSuggestionsAreStableAndRespectEveryExclusion() {
+    var ids =
+        java.util.stream.IntStream.range(0, 7).mapToObj(i -> UUID.randomUUID().toString()).toList();
+    for (String id : ids)
+      profiles.save(
+          jwt(id), new ProfileController.Input("Discovery", null, null, null, java.util.List.of()));
+    String a = ids.get(0),
+        f = ids.get(1),
+        g = ids.get(2),
+        candidate = ids.get(3),
+        followed = ids.get(4),
+        pending = ids.get(5),
+        blocked = ids.get(6);
+    for (String[] pair :
+        java.util.List.of(
+            new String[] {a, f},
+            new String[] {a, g},
+            new String[] {f, candidate},
+            new String[] {g, candidate},
+            new String[] {f, followed},
+            new String[] {f, pending},
+            new String[] {f, blocked})) {
+      var c = connections.request(pair[0], pair[1]);
+      connections.command(pair[1], c.id(), "accept");
+    }
+    follows.follow(a, followed);
+    connections.request(a, pending);
+    policy.block(blocked, a);
+    var result = discovery.suggest(a, 20);
+    assertThat(result)
+        .extracting(dev.network.member.discovery.MemberDiscovery.Suggestion::memberId)
+        .containsExactly(candidate);
+    assertThat(result.getFirst().reason()).isEqualTo("Connections in common");
+    assertThat(discovery.suggest(a, 20)).isEqualTo(result);
+  }
+
   private org.springframework.security.oauth2.jwt.Jwt jwt(String id) {
     return org.springframework.security.oauth2.jwt.Jwt.withTokenValue("test")
         .header("alg", "test")

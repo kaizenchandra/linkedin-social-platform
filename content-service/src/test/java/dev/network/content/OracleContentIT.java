@@ -58,6 +58,80 @@ class OracleContentIT {
             });
   }
 
+  @Autowired DiscoveryContentService discovery;
+  @Autowired org.springframework.jdbc.core.JdbcTemplate db;
+
+  @Test
+  void followingDoesNotGrantConnectionsVisibilityAndFeedDeduplicates() {
+    String a = UUID.randomUUID().toString(),
+        b = UUID.randomUUID().toString(),
+        c = UUID.randomUUID().toString();
+    var publicPost = content.create(c, "Public", Post.Visibility.MEMBERS);
+    var restricted = content.create(c, "Private", Post.Visibility.CONNECTIONS);
+    var connected = content.create(b, "Connection", Post.Visibility.CONNECTIONS);
+    org.mockito.Mockito.when(members.accepted(a)).thenReturn(List.of(b));
+    org.mockito.Mockito.when(members.followed(a)).thenReturn(List.of(b, c));
+    org.mockito.Mockito.when(
+            members.policy(
+                org.mockito.ArgumentMatchers.eq(a), org.mockito.ArgumentMatchers.anyList()))
+        .thenAnswer(
+            inv -> {
+              List<String> ids = inv.getArgument(1);
+              var result = new HashMap<String, dev.network.content.feed.MemberClient.Decision>();
+              ids.forEach(
+                  id ->
+                      result.put(
+                          id,
+                          new dev.network.content.feed.MemberClient.Decision(
+                              id, true, id.equals(b))));
+              return result;
+            });
+    assertThat(discovery.feed(a, null, 100).items())
+        .extracting(ContentService.PostView::id)
+        .containsExactly(connected.id(), publicPost.id());
+    assertThatThrownBy(() -> discovery.save(a, restricted.id()))
+        .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+    discovery.save(a, publicPost.id());
+    discovery.save(a, publicPost.id());
+    assertThat(discovery.saved(a, null, 20).items()).hasSize(1);
+    assertThat(discovery.saved(b, null, 20).items()).isEmpty();
+    content.edit(c, publicPost.id(), "Now private", Post.Visibility.CONNECTIONS);
+    assertThat(discovery.saved(a, null, 20).items()).isEmpty();
+    discovery.unsave(a, publicPost.id());
+    discovery.unsave(a, publicPost.id());
+  }
+
+  @Test
+  void savedCursorAdvancesAcrossEntireRejectedScanBudget() {
+    String a = UUID.randomUUID().toString();
+    var old = content.create(a, "Visible");
+    discovery.save(a, old.id());
+    var base = java.time.Instant.now().minusSeconds(1000);
+    db.update(
+        "UPDATE saved_posts SET saved_at=? WHERE member_id=?",
+        java.sql.Timestamp.from(base.minusSeconds(1)),
+        a);
+    for (int i = 0; i < 501; i++) {
+      String id = UUID.randomUUID().toString();
+      var at = java.sql.Timestamp.from(base.plusMillis(i));
+      db.update(
+          "INSERT INTO posts(id,author_id,body,created_at,updated_at,version,visibility,hidden)"
+              + " VALUES(?,?,?,?,?,0,'MEMBERS',1)",
+          id,
+          a,
+          "Hidden",
+          at,
+          at);
+      db.update("INSERT INTO saved_posts(member_id,post_id,saved_at) VALUES(?,?,?)", a, id, at);
+    }
+    var first = discovery.saved(a, null, 20);
+    assertThat(first.items()).isEmpty();
+    assertThat(first.nextCursor()).isNotNull();
+    var next = discovery.saved(a, first.nextCursor(), 20);
+    assertThat(next.items()).extracting(x -> x.post().id()).containsExactly(old.id());
+    assertThat(next.nextCursor()).isNull();
+  }
+
   @Autowired dev.network.content.moderation.ModerationService moderation;
 
   @Test
@@ -217,5 +291,33 @@ class OracleContentIT {
       cursor = page.nextCursor();
     } while (cursor != null);
     assertThat(seen).isEqualTo(ids);
+  }
+
+  @Test
+  void feedHandles1001AuthorsAndFailsClosedOnPolicyOutage() {
+    String actor = UUID.randomUUID().toString();
+    var connections =
+        java.util.stream.IntStream.range(0, 500)
+            .mapToObj(i -> UUID.randomUUID().toString())
+            .toList();
+    var follows =
+        java.util.stream.IntStream.range(0, 500)
+            .mapToObj(i -> UUID.randomUUID().toString())
+            .toList();
+    var post = content.create(follows.getLast(), "Boundary author");
+    org.mockito.Mockito.when(members.accepted(actor)).thenReturn(connections);
+    org.mockito.Mockito.when(members.followed(actor)).thenReturn(follows);
+    assertThat(discovery.feed(actor, null, 20).items())
+        .extracting(ContentService.PostView::id)
+        .containsExactly(post.id());
+    org.mockito.Mockito.when(
+            members.policy(
+                org.mockito.ArgumentMatchers.eq(actor), org.mockito.ArgumentMatchers.anyList()))
+        .thenThrow(
+            new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE,
+                "Current policy unavailable"));
+    assertThatThrownBy(() -> discovery.feed(actor, null, 20))
+        .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
   }
 }

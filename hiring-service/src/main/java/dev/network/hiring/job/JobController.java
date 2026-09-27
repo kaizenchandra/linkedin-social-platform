@@ -50,6 +50,8 @@ public class JobController {
 
   @GetMapping("/jobs")
   public HiringPages.Slice<JobService.View> search(
+      @AuthenticationPrincipal Jwt j,
+      @RequestParam(defaultValue = "false") boolean followedCompanies,
       @RequestParam(defaultValue = "") String q,
       @RequestParam(required = false) String companyId,
       @RequestParam(required = false) String location,
@@ -57,7 +59,16 @@ public class JobController {
       @RequestParam(required = false) Job.Employment employmentType,
       @RequestParam(required = false) String cursor,
       @RequestParam(defaultValue = "20") int size) {
-    return service.search(q, companyId, location, workArrangement, employmentType, cursor, size);
+    return service.search(
+        q,
+        companyId,
+        location,
+        workArrangement,
+        employmentType,
+        cursor,
+        size,
+        j.getSubject(),
+        followedCompanies);
   }
 
   @GetMapping("/companies/{companyId}/jobs")

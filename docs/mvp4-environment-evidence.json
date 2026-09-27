@@ -1,0 +1,19 @@
+{
+  "observedAt": "2026-09-27T10:01:02.466033+00:00",
+  "composeHealth": {
+    "api-gateway": "healthy",
+    "member-service": "healthy",
+    "content-service": "healthy",
+    "media-service": "healthy",
+    "messaging-service": "healthy",
+    "notification-service": "healthy",
+    "hiring-service": "healthy"
+  },
+  "dedicatedKindState": "exited",
+  "kindPVCsRetained": true,
+  "feedCounters": {
+    "network_discovery_candidates_total": 26544.0,
+    "network_discovery_returned_total": 26543.0
+  },
+  "counterWindow": "Since current content-service start; includes final smoke and traced load, not only load requests."
+}

@@ -1,0 +1,78 @@
+{
+  "traceId": "3b5c6161e5ee3a99ea4160836ccf4d9c",
+  "services": [
+    "api-gateway",
+    "hiring-service",
+    "notification-service"
+  ],
+  "network_alert_backlog": [
+    {
+      "labels": {
+        "__name__": "network_alert_backlog",
+        "application": "hiring-service",
+        "instance": "hiring-service:9090",
+        "job": "network-services"
+      },
+      "value": "0"
+    }
+  ],
+  "network_alert_oldest_seconds": [
+    {
+      "labels": {
+        "__name__": "network_alert_oldest_seconds",
+        "application": "hiring-service",
+        "instance": "hiring-service:9090",
+        "job": "network-services"
+      },
+      "value": "0"
+    }
+  ],
+  "network_alert_failed": [
+    {
+      "labels": {
+        "__name__": "network_alert_failed",
+        "application": "hiring-service",
+        "instance": "hiring-service:9090",
+        "job": "network-services"
+      },
+      "value": "0"
+    }
+  ],
+  "network_discovery_candidates_total": [
+    {
+      "labels": {
+        "__name__": "network_discovery_candidates_total",
+        "application": "content-service",
+        "instance": "content-service:9090",
+        "job": "network-services",
+        "query": "feed"
+      },
+      "value": "20"
+    }
+  ],
+  "network_discovery_returned_total": [
+    {
+      "labels": {
+        "__name__": "network_discovery_returned_total",
+        "application": "content-service",
+        "instance": "content-service:9090",
+        "job": "network-services",
+        "query": "feed"
+      },
+      "value": "20"
+    }
+  ],
+  "network_discovery_query_seconds_count": [
+    {
+      "labels": {
+        "__name__": "network_discovery_query_seconds_count",
+        "application": "hiring-service",
+        "instance": "hiring-service:9090",
+        "job": "network-services",
+        "query": "company_suggestions"
+      },
+      "value": "1"
+    }
+  ],
+  "contentAbsentFromLogsAndTraces": true
+}

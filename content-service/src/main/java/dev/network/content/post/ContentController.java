@@ -14,8 +14,10 @@ import org.springframework.web.bind.annotation.*;
 public class ContentController {
   private final ContentService service;
   private final MemberClient members;
+  private final DiscoveryContentService discovery;
 
-  public ContentController(ContentService s, MemberClient m) {
+  public ContentController(ContentService s, MemberClient m, DiscoveryContentService discovery) {
+    this.discovery = discovery;
     service = s;
     members = m;
   }
@@ -62,9 +64,7 @@ public class ContentController {
       @AuthenticationPrincipal Jwt j,
       @RequestParam(required = false) String cursor,
       @RequestParam(defaultValue = "20") int size) {
-    var authors = new ArrayList<>(members.accepted(j.getSubject()));
-    authors.add(j.getSubject());
-    return service.timeline(j.getSubject(), authors, cursor, size);
+    return discovery.feed(j.getSubject(), cursor, size);
   }
 
   @PutMapping("/posts/{id}/like")

@@ -1,0 +1,7 @@
+{
+  "brokerOutagePublishSeconds": 0.06676608300040243,
+  "eligibilityFailure": "bounded retries -> DLT; dedup rolled back; repaired replay semantically deduplicated",
+  "transactionFailure": "Oracle trigger fault rolled back match/outbox/checkpoint; five retries -> FAILED; replay delivered once",
+  "workerRestart": "persisted checkpoint survives restart;81 unique matches, outbox records and deliveries",
+  "twoReadyWorkers": "new publication after both instances healthy;81 unique matches, outbox records and deliveries"
+}

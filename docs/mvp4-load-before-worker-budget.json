@@ -1,0 +1,52 @@
+{
+  "hardware": "macOS-27.0-arm64-arm-64bit-Mach-O",
+  "architecture": "arm64",
+  "dockerResources": "11 CPUs / 9435414528 bytes",
+  "dataset": {
+    "newFeedPosts": 100,
+    "realActors": 3,
+    "publishedMatchingJobs": 5,
+    "explicitMatchingSearches": 1,
+    "retainedOtherTestData": true
+  },
+  "replicas": {
+    "gateway": 1,
+    "member": 1,
+    "content": 1,
+    "hiring": 1,
+    "notification": 1
+  },
+  "concurrency": 4,
+  "durationSeconds": 20.006582959002117,
+  "requests": 6387,
+  "requestsPerSecond": 319.24492118860906,
+  "p50Ms": 8.002833998034475,
+  "p95Ms": 34.53008299766225,
+  "p99Ms": 50.27995899945381,
+  "errors": [],
+  "publicationToAlertMs": [
+    20020.81991600062,
+    20135.896416999458,
+    20280.306791999465,
+    20548.524417001317,
+    20194.39924999824
+  ],
+  "resourceSnapshot": [
+    "professional-network-mvp-content-service-1 CPU=2.91% MEM=507.8MiB / 640MiB",
+    "professional-network-mvp-api-gateway-1 CPU=1.62% MEM=323.8MiB / 640MiB",
+    "professional-network-mvp-media-service-1 CPU=1.16% MEM=417.5MiB / 640MiB",
+    "professional-network-mvp-member-service-1 CPU=1.73% MEM=498.1MiB / 640MiB",
+    "professional-network-mvp-messaging-service-1 CPU=2.43% MEM=417.9MiB / 640MiB",
+    "professional-network-mvp-hiring-service-1 CPU=0.91% MEM=515.1MiB / 640MiB",
+    "professional-network-mvp-notification-service-1 CPU=1.98% MEM=491.5MiB / 640MiB",
+    "professional-network-mvp-zipkin-1 CPU=0.07% MEM=195.5MiB / 512MiB",
+    "professional-network-mvp-kafka-1 CPU=9.28% MEM=473.8MiB / 8.787GiB",
+    "professional-network-mvp-keycloak-1 CPU=0.25% MEM=440.9MiB / 8.787GiB",
+    "professional-network-mvp-oracle-1 CPU=7.69% MEM=926.1MiB / 8.787GiB",
+    "professional-network-mvp-prometheus-1 CPU=0.21% MEM=116.3MiB / 8.787GiB",
+    "professional-network-mvp-grafana-1 CPU=0.60% MEM=229.4MiB / 8.787GiB",
+    "professional-network-mvp-object-store-1 CPU=2.82% MEM=98.2MiB / 512MiB"
+  ],
+  "limitations": "Local mixed warm read workload; publication metric includes draft creation and polling resolution250ms. Not saturation or production capacity.",
+  "traceAgentEnabled": false
+}

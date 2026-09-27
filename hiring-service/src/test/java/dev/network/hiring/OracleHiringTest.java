@@ -17,7 +17,12 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.server.ResponseStatusException;
 import org.testcontainers.oracle.OracleContainer;
 
-@SpringBootTest(properties = "network.outbox.enabled=false")
+@SpringBootTest(
+    properties = {
+      "network.outbox.enabled=false",
+      "network.alerts.enabled=false",
+      "spring.kafka.listener.auto-startup=false"
+    })
 abstract class OracleHiringTest {
   static OracleContainer oracle;
 

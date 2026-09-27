@@ -1,0 +1,92 @@
+### Use existing login/refresh instructions. Every request requires a member access token.
+@base = http://localhost:8080
+@token = REPLACE_WITH_ACCESS_TOKEN
+@memberId = REPLACE_WITH_MEMBER_UUID
+@companyId = REPLACE_WITH_COMPANY_UUID
+@postId = REPLACE_WITH_POST_UUID
+@jobId = REPLACE_WITH_JOB_UUID
+@searchId = REPLACE_WITH_SEARCH_UUID
+### Follow independently of connection
+PUT {{base}}/api/v1/members/{{memberId}}/follow
+Authorization: Bearer {{token}}
+### Private follow list
+GET {{base}}/api/v1/members/me/following?size=20
+Authorization: Bearer {{token}}
+### My follow status
+GET {{base}}/api/v1/members/{{memberId}}/follow
+Authorization: Bearer {{token}}
+### Expanded chronological feed; follow nextCursor even if a page is empty
+GET {{base}}/api/v1/feed?size=20
+Authorization: Bearer {{token}}
+### Save accessible post
+PUT {{base}}/api/v1/posts/{{postId}}/saved
+Authorization: Bearer {{token}}
+### Currently accessible private saved posts
+GET {{base}}/api/v1/posts/saved?size=20
+Authorization: Bearer {{token}}
+### Follow company (does not enable alerts)
+PUT {{base}}/api/v1/companies/{{companyId}}/follow
+Authorization: Bearer {{token}}
+### Private followed companies
+GET {{base}}/api/v1/companies/following?size=20
+Authorization: Bearer {{token}}
+### My company follow status
+GET {{base}}/api/v1/companies/{{companyId}}/follow
+Authorization: Bearer {{token}}
+### Followed-company interactive search
+GET {{base}}/api/v1/jobs?followedCompanies=true&q=engineer
+Authorization: Bearer {{token}}
+### Save job
+PUT {{base}}/api/v1/jobs/{{jobId}}/saved
+Authorization: Bearer {{token}}
+### Safe saved-job summaries
+GET {{base}}/api/v1/jobs/saved
+Authorization: Bearer {{token}}
+### Explainable member suggestions
+GET {{base}}/api/v1/members/suggestions?size=10
+Authorization: Bearer {{token}}
+### Explicit company discovery
+GET {{base}}/api/v1/companies/suggestions?industry=Software&location=London
+Authorization: Bearer {{token}}
+### Create prospective search with explicit alert consent
+POST {{base}}/api/v1/jobs/searches
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"name":"Engineering","keywords":"engineer","companyIds":["{{companyId}}"],"location":"London","workArrangement":"REMOTE","employmentType":"FULL_TIME","alertsEnabled":true}
+### List own searches (contains update version)
+GET {{base}}/api/v1/jobs/searches
+Authorization: Bearer {{token}}
+### Disable search; replace expectedVersion with current version
+PUT {{base}}/api/v1/jobs/searches/{{searchId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"name":"Engineering","keywords":"engineer","companyIds":["{{companyId}}"],"location":"London","workArrangement":"REMOTE","employmentType":"FULL_TIME","alertsEnabled":false,"expectedVersion":0}
+### Global job-alert preference only
+PUT {{base}}/api/v1/notifications/preferences/job-alerts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"enabled":false}
+### Effective preference requires explicit active search
+GET {{base}}/api/v1/notifications/preferences/job-alerts
+Authorization: Bearer {{token}}
+### Generic notifications; open job through its currently authorized endpoint
+GET {{base}}/api/v1/notifications?size=20
+Authorization: Bearer {{token}}
+### Safe unsave even after access is lost
+DELETE {{base}}/api/v1/posts/{{postId}}/saved
+Authorization: Bearer {{token}}
+### Unsave job
+DELETE {{base}}/api/v1/jobs/{{jobId}}/saved
+Authorization: Bearer {{token}}
+### Unfollow member; any accepted connection remains independent
+DELETE {{base}}/api/v1/members/{{memberId}}/follow
+Authorization: Bearer {{token}}
+### Unfollow company; explicit saved-search criteria remain unchanged
+DELETE {{base}}/api/v1/companies/{{companyId}}/follow
+Authorization: Bearer {{token}}
+### Delete search (tombstone, no delivered-notification recall)
+DELETE {{base}}/api/v1/jobs/searches/{{searchId}}
+Authorization: Bearer {{token}}

@@ -19,14 +19,19 @@ public class NotificationConsumer {
   private final Clock clock;
   private final dev.network.web.ServiceHttp http;
   private final String hiringUrl;
+  private final dev.network.notification.preferences.JobAlertPreferences preferences;
 
   public NotificationConsumer(
       EntityManager em,
       NotificationRepository n,
       ObjectMapper json,
       MeterRegistry metrics,
-      Clock clock, dev.network.web.ServiceHttp http,
-      @org.springframework.beans.factory.annotation.Value("${HIRING_URL:http://localhost:8086}") String hiringUrl) {
+      Clock clock,
+      dev.network.web.ServiceHttp http,
+      @org.springframework.beans.factory.annotation.Value("${HIRING_URL:http://localhost:8086}")
+          String hiringUrl,
+      dev.network.notification.preferences.JobAlertPreferences preferences) {
+    this.preferences = preferences;
     this.http = http;
     this.hiringUrl = hiringUrl;
     this.em = em;
@@ -58,12 +63,18 @@ public class NotificationConsumer {
                 "message.sent",
                 "moderation.hidden",
                 "moderation.restored",
-                "hiring.invitation.created", "hiring.application.submitted", "hiring.application.status")
+                "hiring.invitation.created",
+                "hiring.application.submitted",
+                "hiring.application.status",
+                "hiring.job.published",
+                "hiring.job.alert")
             .contains(type)) throw new IllegalArgumentException("Unsupported event schema/type");
     String expected =
-        type.startsWith("hiring.") ? "hiring-service" : type.startsWith("connection.")
-            ? "member-service"
-            : type.equals("message.sent") ? "messaging-service" : "content-service";
+        type.startsWith("hiring.")
+            ? "hiring-service"
+            : type.startsWith("connection.")
+                ? "member-service"
+                : type.equals("message.sent") ? "messaging-service" : "content-service";
     if (!expected.equals(e.path("producer").asText())
         || !e.has("correlationId")
         || !e.has("causationId")
@@ -83,22 +94,42 @@ public class NotificationConsumer {
         .setParameter("id", id)
         .setParameter("at", clock.instant())
         .executeUpdate();
+    if (type.equals("hiring.job.published")) return;
+    if (type.equals("hiring.job.alert")) {
+      UUID.fromString(recipient);
+      if (!preferences.authorizeDelivery(
+          recipient, e.path("payload").path("matchId").asText(), resource)) {
+        metrics.counter("notifications.job.alerts", "outcome", "suppressed").increment();
+        return;
+      }
+      metrics
+          .timer("notifications.job.alert.latency")
+          .record(Duration.between(occurred, clock.instant()).abs());
+    }
     List<String> recipients;
     if (type.equals("hiring.application.submitted")) {
       String company = e.path("payload").path("companyId").asText();
       UUID.fromString(company);
-      var resolved = http.post(hiringUrl + "/internal/v1/hiring/recipients",
-          Map.of("companyId", company), Recipients.class);
-      if (resolved == null || resolved.memberIds() == null || resolved.memberIds().isEmpty()
+      var resolved =
+          http.post(
+              hiringUrl + "/internal/v1/hiring/recipients",
+              Map.of("companyId", company),
+              Recipients.class);
+      if (resolved == null
+          || resolved.memberIds() == null
+          || resolved.memberIds().isEmpty()
           || resolved.memberIds().size() > 100)
         throw new IllegalStateException("Invalid hiring recipient resolution");
       recipients = resolved.memberIds();
     } else recipients = List.of(recipient);
     for (String target : new HashSet<>(recipients)) {
       UUID.fromString(target);
-      if (!actor.equals(target) || type.startsWith("moderation."))
-        notifications.saveAndFlush(new Notification(UUID.randomUUID().toString(), id,
-            target, actor, resource, type, occurred));
+      if (!actor.equals(target)
+          || type.startsWith("moderation.")
+          || type.equals("hiring.job.alert"))
+        notifications.saveAndFlush(
+            new Notification(
+                UUID.randomUUID().toString(), id, target, actor, resource, type, occurred));
     }
     metrics.counter("notifications.processed").increment();
   }

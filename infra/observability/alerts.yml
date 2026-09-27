@@ -26,3 +26,18 @@ groups:
         for: 5m
         labels: {severity: warning}
         annotations: {summary: "Hiring requests are failing; inspect profile dependency and database health"}
+      - alert: JobAlertMatchingStalled
+        expr: network_alert_oldest_seconds > 300
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "Job-alert work is aging; inspect worker, database and outbox backpressure"}
+      - alert: JobAlertMatchingFailed
+        expr: network_alert_failed > 0
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: "Matching exhausted retries; repair cause then replay FAILED work"}
+      - alert: JobPublicationDeadLetters
+        expr: increase(network_alert_consumer_deadletters_total[5m]) > 0
+        for: 1m
+        labels: {severity: warning}
+        annotations: {summary: "Publication ingestion failed; inspect hiring DLT and snapshot availability"}

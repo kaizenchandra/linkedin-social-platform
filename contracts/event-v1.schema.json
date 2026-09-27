@@ -31,7 +31,9 @@
         "moderation.restored",
         "hiring.invitation.created",
         "hiring.application.submitted",
-        "hiring.application.status"
+        "hiring.application.status",
+        "hiring.job.published",
+        "hiring.job.alert"
       ]
     },
     "occurredAt": {
@@ -74,6 +76,10 @@
         "companyId": {
           "type": "string",
           "format": "uuid"
+        },
+        "matchId": {
+          "type": "string",
+          "format": "uuid"
         }
       },
       "oneOf": [
@@ -105,7 +111,10 @@
       "if": {
         "properties": {
           "eventType": {
-            "const": "hiring.application.submitted"
+            "enum": [
+              "hiring.application.submitted",
+              "hiring.job.published"
+            ]
           }
         }
       },
@@ -122,6 +131,25 @@
         "properties": {
           "payload": {
             "required": [
+              "recipientId"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "hiring.job.alert"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "required": [
+              "matchId",
               "recipientId"
             ]
           }

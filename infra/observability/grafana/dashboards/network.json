@@ -2,7 +2,7 @@
   "title": "Professional Network MVP",
   "uid": "network-mvp",
   "schemaVersion": 41,
-  "version": 3,
+  "version": 4,
   "refresh": "10s",
   "panels": [
     {
@@ -253,6 +253,153 @@
       "gridPos": {
         "x": 0,
         "y": 56,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "id": 13,
+      "title": "Discovery scanned versus returned",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by(query) (rate(network_discovery_candidates_total[5m])) / clamp_min(sum by(query) (rate(network_discovery_returned_total[5m])),0.001)",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 64,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "id": 14,
+      "title": "Discovery query mean seconds",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by(query)(rate(network_discovery_query_seconds_sum[5m])) / clamp_min(sum by(query)(rate(network_discovery_query_seconds_count[5m])),0.001)",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "x": 12,
+        "y": 64,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "id": 15,
+      "title": "Matching backlog",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "network_alert_backlog",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 72,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "id": 16,
+      "title": "Oldest matching work seconds",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "network_alert_oldest_seconds",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "x": 12,
+        "y": 72,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "id": 17,
+      "title": "Failed matching work",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "network_alert_failed",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 80,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "id": 18,
+      "title": "Alert retry and deduplication outcomes",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by(outcome)(rate(network_alert_matches_total[5m]))",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "x": 12,
+        "y": 80,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "id": 19,
+      "title": "Notification match-to-delivery seconds",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(notifications_job_alert_latency_seconds_sum[5m])/clamp_min(rate(notifications_job_alert_latency_seconds_count[5m]),0.001)",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 88,
         "w": 12,
         "h": 8
       }

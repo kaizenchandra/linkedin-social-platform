@@ -46,7 +46,7 @@
             "containers": [
               {
                 "name": "member-service",
-                "image": "professional-network/member-service:0.3.0",
+                "image": "professional-network/member-service:0.4.0",
                 "imagePullPolicy": "IfNotPresent",
                 "env": [
                   {
@@ -245,7 +245,7 @@
             "containers": [
               {
                 "name": "content-service",
-                "image": "professional-network/content-service:0.3.0",
+                "image": "professional-network/content-service:0.4.0",
                 "imagePullPolicy": "IfNotPresent",
                 "env": [
                   {
@@ -457,7 +457,7 @@
             "containers": [
               {
                 "name": "notification-service",
-                "image": "professional-network/notification-service:0.3.0",
+                "image": "professional-network/notification-service:0.4.0",
                 "imagePullPolicy": "IfNotPresent",
                 "env": [
                   {
@@ -677,7 +677,7 @@
             "containers": [
               {
                 "name": "api-gateway",
-                "image": "professional-network/api-gateway:0.3.0",
+                "image": "professional-network/api-gateway:0.4.0",
                 "imagePullPolicy": "IfNotPresent",
                 "env": [
                   {
@@ -844,7 +844,7 @@
             "containers": [
               {
                 "name": "media-service",
-                "image": "professional-network/media-service:0.3.0",
+                "image": "professional-network/media-service:0.4.0",
                 "imagePullPolicy": "IfNotPresent",
                 "env": [
                   {
@@ -1074,7 +1074,7 @@
             "containers": [
               {
                 "name": "messaging-service",
-                "image": "professional-network/messaging-service:0.3.0",
+                "image": "professional-network/messaging-service:0.4.0",
                 "imagePullPolicy": "IfNotPresent",
                 "env": [
                   {
@@ -1299,7 +1299,7 @@
             "containers": [
               {
                 "name": "hiring-service",
-                "image": "professional-network/hiring-service:0.3.0",
+                "image": "professional-network/hiring-service:0.4.0",
                 "imagePullPolicy": "IfNotPresent",
                 "env": [
                   {

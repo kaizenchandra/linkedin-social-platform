@@ -1,6 +1,10 @@
-# Project progress
+# Current release
 
-Current release: **MVP-3 /0.3.0**, phases0–6 locally verified on2026-09-27. See [MVP-3 progress](mvp3-progress.md) and [executed verification](mvp3-verification.md).
+MVP-4 / 0.4.0: implementation, Compose and retained kind deployment verification passed. See [current checkpoint](mvp4-progress.md), [acceptance plan](mvp4-plan.md), and [executed evidence](mvp4-verification.md).
+
+# MVP-3 historical checkpoint
+
+Previous release: **MVP-3 /0.3.0**, phases0–6 locally verified on2026-09-27. See [MVP-3 progress](mvp3-progress.md) and [executed verification](mvp3-verification.md).
 
 Seven independently deployable applications implement networking, media, private messaging, moderation and the hiring workflow: companies/recruiters, jobs/search, idempotent applications with immutable snapshots, status/withdrawal and generic notifications.60 tests pass with real Oracle/S3; Kafka recovery/replay, all release journeys, fresh Compose, populated upgrades, retained kind rollout, rolling restarts and isolated backup/restore passed.
 

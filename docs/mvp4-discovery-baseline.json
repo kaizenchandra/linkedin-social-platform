@@ -1,0 +1,21 @@
+{
+  "hardware": "macOS-27.0-arm64-arm-64bit-Mach-O",
+  "architecture": "arm64",
+  "dockerResources": "11 CPUs / 9435414528 bytes",
+  "dataset": "3 actor profiles, A-B-C path,2 companies with unique industry; other retained regression data present",
+  "replicas": 1,
+  "concurrency": 2,
+  "requests": 100,
+  "durationSeconds": 0.5593816670007072,
+  "requestsPerSecond": 178.7688190358115,
+  "p50Ms": 10.550458999205148,
+  "p95Ms": 15.479458998015616,
+  "p99Ms": 19.70979199904832,
+  "errors": 0,
+  "queryLimits": {
+    "memberEdges": 5000,
+    "returnedSuggestions": 20
+  },
+  "limitations": "Small local warm fixture, gateway latency includes auth/network; not capacity or saturation evidence. No cache added.",
+  "traceAgentEnabled": false
+}

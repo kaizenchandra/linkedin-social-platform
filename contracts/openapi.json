@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Professional Network",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "description": "Authenticated networking and hiring. Current visibility/blocking, company membership and resource ownership authorize every read. Companies are UNVERIFIED. Generic notifications disclose no private target content."
   },
   "servers": [
@@ -6388,6 +6388,15 @@
                 "INTERNSHIP"
               ]
             }
+          },
+          {
+            "in": "query",
+            "name": "followedCompanies",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Restricts interactive results to explicit company follows; grants no company permission."
           }
         ]
       }
@@ -7800,6 +7809,985 @@
           }
         ]
       }
+    },
+    "/api/v1/members/{id}/follow": {
+      "put": {
+        "summary": "Idempotent private follow; maximum500",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          },
+          "409": {
+            "description": "Product limit reached"
+          },
+          "503": {
+            "description": "Retryable dependency failure"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Idempotent private unfollow",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          },
+          "409": {
+            "description": "Product limit reached"
+          },
+          "503": {
+            "description": "Retryable dependency failure"
+          }
+        }
+      },
+      "get": {
+        "summary": "My follow status; no follower identities",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          },
+          "409": {
+            "description": "Product limit reached"
+          },
+          "503": {
+            "description": "Retryable dependency failure"
+          }
+        }
+      }
+    },
+    "/api/v1/companies/{id}/follow": {
+      "put": {
+        "summary": "Idempotent private follow; maximum500",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          },
+          "409": {
+            "description": "Product limit reached"
+          },
+          "503": {
+            "description": "Retryable dependency failure"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Idempotent private unfollow",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          },
+          "409": {
+            "description": "Product limit reached"
+          },
+          "503": {
+            "description": "Retryable dependency failure"
+          }
+        }
+      },
+      "get": {
+        "summary": "My follow status; no follower identities",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FollowStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          },
+          "409": {
+            "description": "Product limit reached"
+          },
+          "503": {
+            "description": "Retryable dependency failure"
+          }
+        }
+      }
+    },
+    "/api/v1/members/me/following": {
+      "get": {
+        "summary": "Members I follow",
+        "parameters": [
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10000
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MemberFollow"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          },
+          "409": {
+            "description": "Product limit reached"
+          },
+          "503": {
+            "description": "Retryable dependency failure"
+          }
+        }
+      }
+    },
+    "/api/v1/companies/following": {
+      "get": {
+        "summary": "Companies I follow",
+        "parameters": [
+          {
+            "name": "size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items",
+                    "hasMore"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/CompanyFollow"
+                      }
+                    },
+                    "hasMore": {
+                      "type": "boolean"
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          },
+          "409": {
+            "description": "Product limit reached"
+          },
+          "503": {
+            "description": "Retryable dependency failure"
+          }
+        }
+      }
+    },
+    "/api/v1/posts/{id}/saved": {
+      "put": {
+        "summary": "Idempotent private save currently accessible resource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Idempotent private unsave even inaccessible resource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          }
+        }
+      }
+    },
+    "/api/v1/posts/saved": {
+      "get": {
+        "summary": "My saved items;500 candidate scan budget; no inaccessible counts; follow nextCursor even on empty pages",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Private current-authorized slice",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SavedPost"
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "hasMore": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "503": {
+            "description": "Current authorization unavailable; retry"
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/{id}/saved": {
+      "put": {
+        "summary": "Idempotent private save currently accessible resource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Idempotent private unsave even inaccessible resource",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/saved": {
+      "get": {
+        "summary": "My saved items;500 candidate scan budget; no inaccessible counts; follow nextCursor even on empty pages",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "schema": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          {
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Private current-authorized slice",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "items"
+                  ],
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SavedJob"
+                      }
+                    },
+                    "nextCursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "hasMore": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "503": {
+            "description": "Current authorization unavailable; retry"
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/searches": {
+      "get": {
+        "summary": "My private saved searches; maximum10",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "maxItems": 10,
+                  "items": {
+                    "$ref": "#/components/schemas/SavedSearch"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          },
+          "409": {
+            "description": "Version conflict or product limit"
+          },
+          "503": {
+            "description": "Retryable dependency failure"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create prospective saved search; explicit alerts consent",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSearch"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          },
+          "409": {
+            "description": "Version conflict or product limit"
+          },
+          "503": {
+            "description": "Retryable dependency failure"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedSearchInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/jobs/searches/{id}": {
+      "put": {
+        "summary": "Update with expectedVersion; criteria changes and re-enabling are prospective",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedSearch"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          },
+          "409": {
+            "description": "Version conflict or product limit"
+          },
+          "503": {
+            "description": "Retryable dependency failure"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/SavedSearchInput"
+                  },
+                  {
+                    "required": [
+                      "expectedVersion"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Idempotent owner-scoped tombstone; cancels new matches",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          },
+          "409": {
+            "description": "Version conflict or product limit"
+          },
+          "503": {
+            "description": "Retryable dependency failure"
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/preferences/job-alerts": {
+      "get": {
+        "summary": "Effective consent and global override; authoritative hiring lookup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JobAlertPreference"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          },
+          "409": {
+            "description": "Version conflict or product limit"
+          },
+          "503": {
+            "description": "Retryable dependency failure"
+          }
+        }
+      },
+      "put": {
+        "summary": "Change only global job-alert creation preference",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          },
+          "409": {
+            "description": "Version conflict or product limit"
+          },
+          "503": {
+            "description": "Retryable dependency failure"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "enabled"
+                ],
+                "properties": {
+                  "enabled": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/members/suggestions": {
+      "get": {
+        "summary": "Bounded deterministic suggestions; explicit reason and no private counts",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "maxItems": 20,
+                  "items": {
+                    "$ref": "#/components/schemas/MemberSuggestion"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          },
+          "409": {
+            "description": "Version conflict or product limit"
+          },
+          "503": {
+            "description": "Retryable dependency failure"
+          }
+        }
+      }
+    },
+    "/api/v1/companies/suggestions": {
+      "get": {
+        "summary": "Bounded deterministic suggestions; explicit reason and no private counts",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "size",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 10
+            }
+          },
+          {
+            "in": "query",
+            "name": "industry",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "location",
+            "schema": {
+              "type": "string",
+              "maxLength": 150
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "maxItems": 20,
+                  "items": {
+                    "$ref": "#/components/schemas/CompanySuggestion"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          },
+          "409": {
+            "description": "Version conflict or product limit"
+          },
+          "503": {
+            "description": "Retryable dependency failure"
+          }
+        }
+      }
+    },
+    "/api/v1/hiring/moderation/alerts/{jobId}/replay": {
+      "post": {
+        "summary": "Moderator/operator retry of FAILED work, preserving durable checkpoint",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "400": {
+            "description": "Invalid input"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "Not accessible"
+          },
+          "409": {
+            "description": "Version conflict or product limit"
+          },
+          "503": {
+            "description": "Retryable dependency failure"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8175,6 +9163,13 @@
               "string",
               "null"
             ]
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Safe generic job-alert text; never a job description or cached preview."
           }
         },
         "required": [
@@ -9896,6 +10891,346 @@
           "occurredAt"
         ],
         "additionalProperties": false
+      },
+      "FollowStatus": {
+        "type": "object",
+        "required": [
+          "following"
+        ],
+        "properties": {
+          "following": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MemberFollow": {
+        "type": "object",
+        "required": [
+          "memberId",
+          "followedAt"
+        ],
+        "properties": {
+          "memberId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "followedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CompanyFollow": {
+        "type": "object",
+        "required": [
+          "companyId",
+          "displayName",
+          "slug",
+          "followedAt"
+        ],
+        "properties": {
+          "companyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "followedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SavedPost": {
+        "type": "object",
+        "required": [
+          "post",
+          "savedAt"
+        ],
+        "properties": {
+          "post": {
+            "$ref": "#/components/schemas/Post"
+          },
+          "savedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "SavedJob": {
+        "type": "object",
+        "required": [
+          "jobId",
+          "companyId",
+          "title",
+          "location",
+          "status",
+          "savedAt"
+        ],
+        "properties": {
+          "jobId": {
+            "type": "string"
+          },
+          "companyId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PUBLISHED",
+              "CLOSED",
+              "EXPIRED"
+            ]
+          },
+          "savedAt": {
+            "type": "string"
+          }
+        }
+      },
+      "SearchCriteria": {
+        "type": "object",
+        "required": [
+          "keywords",
+          "companyIds",
+          "location"
+        ],
+        "properties": {
+          "keywords": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "companyIds": {
+            "type": "array",
+            "maxItems": 20,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "location": {
+            "type": "string",
+            "maxLength": 150
+          },
+          "workArrangement": {
+            "enum": [
+              "ONSITE",
+              "HYBRID",
+              "REMOTE",
+              null
+            ]
+          },
+          "employmentType": {
+            "enum": [
+              "FULL_TIME",
+              "PART_TIME",
+              "CONTRACT",
+              "INTERNSHIP",
+              null
+            ]
+          }
+        }
+      },
+      "SavedSearchInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "keywords": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 100
+          },
+          "companyIds": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "maxItems": 20,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "location": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 150
+          },
+          "workArrangement": {
+            "enum": [
+              "ONSITE",
+              "HYBRID",
+              "REMOTE",
+              null
+            ]
+          },
+          "employmentType": {
+            "enum": [
+              "FULL_TIME",
+              "PART_TIME",
+              "CONTRACT",
+              "INTERNSHIP",
+              null
+            ]
+          },
+          "expectedVersion": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "alertsEnabled": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "SavedSearch": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "criteria",
+          "alertsEnabled",
+          "version",
+          "criteriaVersion",
+          "createdAt",
+          "updatedAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "criteria": {
+            "$ref": "#/components/schemas/SearchCriteria"
+          },
+          "alertsEnabled": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "criteriaVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "criteriaEpoch": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "activationEpoch": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "JobAlertPreference": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "globallyEnabled",
+          "hasActiveSearch"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "globallyEnabled": {
+            "type": "boolean"
+          },
+          "hasActiveSearch": {
+            "type": "boolean"
+          }
+        }
+      },
+      "MemberSuggestion": {
+        "type": "object",
+        "required": [
+          "memberId",
+          "displayName",
+          "headline",
+          "reason"
+        ],
+        "properties": {
+          "memberId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "headline": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "CompanySuggestion": {
+        "type": "object",
+        "required": [
+          "companyId",
+          "displayName",
+          "industry",
+          "location",
+          "reason"
+        ],
+        "properties": {
+          "companyId": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "industry": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
       }
     }
   }

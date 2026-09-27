@@ -62,7 +62,8 @@ public class SecurityConfiguration {
                     .requestMatchers(
                         "/internal/v1/hiring/member-exists", "/internal/v1/hiring/profile-snapshot")
                     .hasAuthority("SCOPE_hiring.profiles")
-                    .requestMatchers("/internal/v1/hiring/recipients")
+                    .requestMatchers(
+                        "/internal/v1/hiring/recipients", "/internal/v1/hiring/alerts/**")
                     .hasAuthority("SCOPE_hiring.recipients")
                     .requestMatchers("/internal/v1/media/**")
                     .hasAuthority("SCOPE_media.manage")
