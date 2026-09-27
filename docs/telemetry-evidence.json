@@ -1,0 +1,10 @@
+{
+  "httpTraceId": "2458c8ff3df9c7c4812a1bee70dd573e",
+  "asyncTraceId": "aa117c09de323bea6793ff93591a9fdb",
+  "asyncServices": [
+    "api-gateway",
+    "content-service",
+    "notification-service"
+  ],
+  "prometheusTargets": 4
+}

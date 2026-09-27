@@ -1,0 +1,69 @@
+services:
+  api-gateway:
+    environment:
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65 -javaagent:/otel/agent.jar
+      OTEL_SERVICE_NAME: api-gateway
+      OTEL_TRACES_EXPORTER: zipkin
+      OTEL_EXPORTER_ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+      OTEL_TRACES_SAMPLER: always_on
+    volumes:
+      - ./.local/tools/opentelemetry-javaagent.jar:/otel/agent.jar:ro
+  member-service:
+    environment:
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65 -javaagent:/otel/agent.jar
+      OTEL_SERVICE_NAME: member-service
+      OTEL_TRACES_EXPORTER: zipkin
+      OTEL_EXPORTER_ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+      OTEL_TRACES_SAMPLER: always_on
+    volumes:
+      - ./.local/tools/opentelemetry-javaagent.jar:/otel/agent.jar:ro
+  content-service:
+    environment:
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65 -javaagent:/otel/agent.jar
+      OTEL_SERVICE_NAME: content-service
+      OTEL_TRACES_EXPORTER: zipkin
+      OTEL_EXPORTER_ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+      OTEL_TRACES_SAMPLER: always_on
+    volumes:
+      - ./.local/tools/opentelemetry-javaagent.jar:/otel/agent.jar:ro
+  notification-service:
+    environment:
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65 -javaagent:/otel/agent.jar
+      OTEL_SERVICE_NAME: notification-service
+      OTEL_TRACES_EXPORTER: zipkin
+      OTEL_EXPORTER_ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+      OTEL_TRACES_SAMPLER: always_on
+    volumes:
+      - ./.local/tools/opentelemetry-javaagent.jar:/otel/agent.jar:ro
+  zipkin:
+    image: openzipkin/zipkin:3.5.1@sha256:bb570eb45c2994eaf32da783cc098b3d51d1095b73ec92919863d73d0a9eaafb
+    ports: ["127.0.0.1:9411:9411"]
+    mem_limit: 512m
+  prometheus:
+    user: "${LOCAL_UID}:${LOCAL_GID}"
+    image: prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e
+    ports: ["127.0.0.1:9095:9090"]
+    volumes:
+      - ./infra/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./.local/metrics-secret:/run/secrets/metrics-secret:ro
+      - ./.local/prometheus-data:/prometheus
+  grafana:
+    image: grafana/grafana:13.2.2@sha256:ac461fb352abc50da10a51c7d02462e9c05488f11f53f14b3ad79a8145f638a0
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports: ["127.0.0.1:3001:3000"]
+    volumes:
+      - ./infra/observability/grafana:/etc/grafana/provisioning:ro
+      - grafana-data:/var/lib/grafana
+volumes:
+  prometheus-data:
+  grafana-data:

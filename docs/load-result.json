@@ -1,0 +1,35 @@
+{
+  "host": "macOS-27.0-arm64-arm-64bit-Mach-O",
+  "architecture": "arm64",
+  "dockerResources": "11 CPUs / 9435414528 bytes",
+  "dataset": "three smoke profiles; GET own profile with empty experiences",
+  "replicas": {
+    "gateway": 1,
+    "member": 1,
+    "content": 1,
+    "notification": 1
+  },
+  "concurrency": 4,
+  "durationSeconds": 20.004889125000773,
+  "requests": 9280,
+  "requestsPerSecond": 463.8866000213156,
+  "errors": 0,
+  "p50Ms": 7.309374999749707,
+  "p95Ms": 16.51454199964064,
+  "p99Ms": 25.91708300042228,
+  "resourceSnapshot": [
+    "professional-network-mvp-api-gateway-1 CPU=0.18% MEM=424.1MiB / 640MiB",
+    "professional-network-mvp-content-service-1 CPU=0.99% MEM=567.5MiB / 640MiB",
+    "professional-network-mvp-notification-service-1 CPU=2.01% MEM=567.4MiB / 640MiB",
+    "professional-network-mvp-member-service-1 CPU=1.46% MEM=607.5MiB / 640MiB",
+    "professional-network-mvp-kafka-1 CPU=2.22% MEM=386.6MiB / 8.787GiB",
+    "professional-network-mvp-keycloak-1 CPU=0.37% MEM=532MiB / 8.787GiB",
+    "professional-network-mvp-oracle-1 CPU=3.40% MEM=1.926GiB / 8.787GiB",
+    "professional-network-mvp-prometheus-1 CPU=2.46% MEM=40.37MiB / 8.787GiB",
+    "professional-network-mvp-grafana-1 CPU=1.10% MEM=167.3MiB / 8.787GiB"
+  ],
+  "limitations": "Local short read-only run with tracing enabled; not a saturation test or capacity guarantee.",
+  "measuredAtUtc": "2026-09-27T05:07:52.259251+00:00",
+  "tracing": "OpenTelemetry Java agent, always_on, Zipkin",
+  "stack": "Boot4.0.8, Cloud2025.1.3, Tomcat11.0.26, Temurin21.0.12.1, Oracle23.9"
+}

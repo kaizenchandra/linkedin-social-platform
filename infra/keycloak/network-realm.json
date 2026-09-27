@@ -1,0 +1,97 @@
+{
+  "realm": "network",
+  "enabled": true,
+  "registrationAllowed": true,
+  "resetPasswordAllowed": true,
+  "accessTokenLifespan": 300,
+  "sslRequired": "none",
+  "roles": {
+    "realm": []
+  },
+  "clientScopes": [
+    {
+      "name": "network-audience",
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "network-api",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "subject",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-sub-mapper",
+          "config": {
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "connections.read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      }
+    },
+    {
+      "name": "metrics.read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      }
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "network-web",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "http://localhost:3000/callback",
+        "http://localhost:8765/callback"
+      ],
+      "webOrigins": [
+        "http://localhost:3000"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "defaultClientScopes": [
+        "network-audience"
+      ]
+    },
+    {
+      "clientId": "content-internal",
+      "publicClient": false,
+      "secret": "${CONTENT_CLIENT_SECRET}",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "defaultClientScopes": [
+        "network-audience",
+        "connections.read"
+      ]
+    },
+    {
+      "clientId": "metrics",
+      "publicClient": false,
+      "secret": "${METRICS_CLIENT_SECRET}",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "defaultClientScopes": [
+        "network-audience",
+        "metrics.read"
+      ]
+    }
+  ]
+}

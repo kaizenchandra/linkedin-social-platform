@@ -1,0 +1,54 @@
+name: Verify MVP-1
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with:
+          python-version: '3.13'
+      - name: Unit, security, Oracle integration tests
+        run: ./mvnw -B -ntp clean verify
+      - name: Local secrets and infrastructure
+        run: |
+          python scripts/init-local.py
+          docker compose up -d --build --wait --wait-timeout 240
+      - name: Real identity and end-to-end APIs
+        run: |
+          python scripts/auth-test-setup.py
+          python scripts/check-pkce.py
+          python scripts/smoke.py
+          python scripts/check-security.py
+          python scripts/check-event-recovery.py
+          python scripts/check-dead-letter.py
+          python scripts/refresh-session.py
+          python scripts/check-restart.py compose
+      - name: Contracts and manifests
+        run: |
+          pip install -r scripts/requirements.lock
+          python scripts/check-contracts.py
+          python scripts/check-manifests.py
+      - name: Dependency and container vulnerability scan
+        run: scripts/scan-images.sh
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: verification-reports
+          path: |
+            **/target/surefire-reports/*.xml
+            **/target/failsafe-reports/*.xml
+            .local/scans/*.json
+      - name: Stop dedicated CI stack
+        if: always()
+        run: docker compose down

@@ -1,0 +1,334 @@
+name: professional-network-mvp
+services:
+  oracle:
+    image: gvenzl/oracle-free:23.9-slim-faststart@sha256:6e0217d72368dd9c213d75274bc2bcb1682a103680090998a8943a173670aba3
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD:?run init-local.py}
+      MEMBER_DB_PASSWORD: ${MEMBER_DB_PASSWORD:?run init-local.py}
+      MEMBER_RUNTIME_PASSWORD: ${MEMBER_RUNTIME_PASSWORD:?run init-local.py}
+      CONTENT_DB_PASSWORD: ${CONTENT_DB_PASSWORD:?run init-local.py}
+      CONTENT_RUNTIME_PASSWORD: ${CONTENT_RUNTIME_PASSWORD:?run init-local.py}
+      NOTIFICATION_DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD:?run init-local.py}
+      NOTIFICATION_RUNTIME_PASSWORD: ${NOTIFICATION_RUNTIME_PASSWORD:?run init-local.py}
+    ports:
+    - 127.0.0.1:1521:1521
+    volumes:
+    - oracle-data:/opt/oracle/oradata
+    - ./infra/oracle:/container-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+      - CMD
+      - healthcheck.sh
+      interval: 10s
+      timeout: 5s
+      retries: 60
+    shm_size: 1gb
+  kafka:
+    image: apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e
+    ports:
+    - 127.0.0.1:9092:9092
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: INTERNAL://:19092,EXTERNAL://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:19092,EXTERNAL://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:SASL_PLAINTEXT,EXTERNAL:SASL_PLAINTEXT,CONTROLLER:SASL_PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx512m
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
+      KAFKA_SASL_MECHANISM_CONTROLLER_PROTOCOL: PLAIN
+      KAFKA_AUTHORIZER_CLASS_NAME: org.apache.kafka.metadata.authorizer.StandardAuthorizer
+      KAFKA_SUPER_USERS: User:admin
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: 'false'
+      KAFKA_ADMIN_PASSWORD: ${KAFKA_ADMIN_PASSWORD}
+      KAFKA_MEMBER_PASSWORD: ${KAFKA_MEMBER_PASSWORD}
+      KAFKA_CONTENT_PASSWORD: ${KAFKA_CONTENT_PASSWORD}
+      KAFKA_NOTIFICATION_PASSWORD: ${KAFKA_NOTIFICATION_PASSWORD}
+    volumes:
+    - kafka-data:/var/lib/kafka/data
+    - ./infra/kafka:/opt/network:ro
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 --command-config
+        /tmp/admin.properties --list >/dev/null
+      interval: 10s
+      timeout: 10s
+      retries: 30
+    command:
+    - /bin/bash
+    - /opt/network/start.sh
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c
+    command:
+    - start-dev
+    - --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?run init-local.py}
+      CONTENT_CLIENT_SECRET: ${CONTENT_CLIENT_SECRET:?run init-local.py}
+      METRICS_CLIENT_SECRET: ${METRICS_CLIENT_SECRET:?run init-local.py}
+      KC_HOSTNAME: http://localhost:8180
+      KC_HEALTH_ENABLED: 'true'
+    ports:
+    - 127.0.0.1:8180:8080
+    volumes:
+    - keycloak-data:/opt/keycloak/data
+    - ./infra/keycloak:/opt/keycloak/data/import:ro
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - bash -c 'exec 3<>/dev/tcp/localhost/9000; printf "GET /health/ready HTTP/1.0\r\n\r\n"
+        >&3; cat <&3 | grep -q UP'
+      interval: 10s
+      timeout: 5s
+      retries: 40
+  member-service:
+    image: professional-network/member-service:0.1.0
+    build:
+      context: .
+      args:
+        MODULE: member-service
+    environment:
+      OIDC_ISSUER: http://localhost:8180/realms/network
+      OIDC_JWKS: http://keycloak:8080/realms/network/protocol/openid-connect/certs
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65
+      MEMBER_URL: http://member-service:8080
+      CONTENT_URL: http://content-service:8080
+      NOTIFICATION_URL: http://notification-service:8080
+      OIDC_TOKEN_URL: http://keycloak:8080/realms/network/protocol/openid-connect/token
+      CONTENT_CLIENT_SECRET: ${CONTENT_CLIENT_SECRET}
+      DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
+      DB_USER: member_runtime
+      DB_SCHEMA: member_app
+      DB_PASSWORD: ${MEMBER_RUNTIME_PASSWORD}
+      MIGRATIONS_ENABLED: 'false'
+      KAFKA_BOOTSTRAP: kafka:19092
+      KAFKA_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_USER: member
+      KAFKA_PASSWORD: ${KAFKA_MEMBER_PASSWORD}
+    ports:
+    - 127.0.0.1:8081:8080
+    depends_on:
+      member-migration:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_healthy
+      oracle:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    mem_limit: 640m
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
+        HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 20s
+  content-service:
+    image: professional-network/content-service:0.1.0
+    build:
+      context: .
+      args:
+        MODULE: content-service
+    environment:
+      OIDC_ISSUER: http://localhost:8180/realms/network
+      OIDC_JWKS: http://keycloak:8080/realms/network/protocol/openid-connect/certs
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65
+      MEMBER_URL: http://member-service:8080
+      CONTENT_URL: http://content-service:8080
+      NOTIFICATION_URL: http://notification-service:8080
+      OIDC_TOKEN_URL: http://keycloak:8080/realms/network/protocol/openid-connect/token
+      CONTENT_CLIENT_SECRET: ${CONTENT_CLIENT_SECRET}
+      DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
+      DB_USER: content_runtime
+      DB_SCHEMA: content_app
+      DB_PASSWORD: ${CONTENT_RUNTIME_PASSWORD}
+      MIGRATIONS_ENABLED: 'false'
+      KAFKA_BOOTSTRAP: kafka:19092
+      KAFKA_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_USER: content
+      KAFKA_PASSWORD: ${KAFKA_CONTENT_PASSWORD}
+    ports:
+    - 127.0.0.1:8082:8080
+    depends_on:
+      content-migration:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_healthy
+      oracle:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    mem_limit: 640m
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
+        HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 20s
+  notification-service:
+    image: professional-network/notification-service:0.1.0
+    build:
+      context: .
+      args:
+        MODULE: notification-service
+    environment:
+      OIDC_ISSUER: http://localhost:8180/realms/network
+      OIDC_JWKS: http://keycloak:8080/realms/network/protocol/openid-connect/certs
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65
+      MEMBER_URL: http://member-service:8080
+      CONTENT_URL: http://content-service:8080
+      NOTIFICATION_URL: http://notification-service:8080
+      OIDC_TOKEN_URL: http://keycloak:8080/realms/network/protocol/openid-connect/token
+      CONTENT_CLIENT_SECRET: ${CONTENT_CLIENT_SECRET}
+      DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
+      DB_USER: notification_runtime
+      DB_SCHEMA: notification_app
+      DB_PASSWORD: ${NOTIFICATION_RUNTIME_PASSWORD}
+      MIGRATIONS_ENABLED: 'false'
+      KAFKA_BOOTSTRAP: kafka:19092
+      KAFKA_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_USER: notification
+      KAFKA_PASSWORD: ${KAFKA_NOTIFICATION_PASSWORD}
+    ports:
+    - 127.0.0.1:8083:8080
+    depends_on:
+      notification-migration:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_healthy
+      oracle:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    mem_limit: 640m
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
+        HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 20s
+  api-gateway:
+    image: professional-network/api-gateway:0.1.0
+    build:
+      context: .
+      args:
+        MODULE: api-gateway
+    environment:
+      OIDC_ISSUER: http://localhost:8180/realms/network
+      OIDC_JWKS: http://keycloak:8080/realms/network/protocol/openid-connect/certs
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65
+      MEMBER_URL: http://member-service:8080
+      CONTENT_URL: http://content-service:8080
+      NOTIFICATION_URL: http://notification-service:8080
+      OIDC_TOKEN_URL: http://keycloak:8080/realms/network/protocol/openid-connect/token
+      CONTENT_CLIENT_SECRET: ${CONTENT_CLIENT_SECRET}
+    ports:
+    - 127.0.0.1:8080:8080
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      member-service:
+        condition: service_healthy
+      content-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    mem_limit: 640m
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
+        HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 20s
+  member-migration:
+    image: professional-network/member-service:0.1.0
+    entrypoint:
+    - java
+    - -Dloader.main=dev.network.web.Migrate
+    - -cp
+    - /app/app.jar
+    - org.springframework.boot.loader.launch.PropertiesLauncher
+    environment:
+      DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
+      DB_USER: member_app
+      DB_PASSWORD: ${MEMBER_DB_PASSWORD}
+      DB_RUNTIME_USER: member_runtime
+    depends_on:
+      oracle:
+        condition: service_healthy
+  content-migration:
+    image: professional-network/content-service:0.1.0
+    entrypoint:
+    - java
+    - -Dloader.main=dev.network.web.Migrate
+    - -cp
+    - /app/app.jar
+    - org.springframework.boot.loader.launch.PropertiesLauncher
+    environment:
+      DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
+      DB_USER: content_app
+      DB_PASSWORD: ${CONTENT_DB_PASSWORD}
+      DB_RUNTIME_USER: content_runtime
+    depends_on:
+      oracle:
+        condition: service_healthy
+  notification-migration:
+    image: professional-network/notification-service:0.1.0
+    entrypoint:
+    - java
+    - -Dloader.main=dev.network.web.Migrate
+    - -cp
+    - /app/app.jar
+    - org.springframework.boot.loader.launch.PropertiesLauncher
+    environment:
+      DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
+      DB_USER: notification_app
+      DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD}
+      DB_RUNTIME_USER: notification_runtime
+    depends_on:
+      oracle:
+        condition: service_healthy
+  kafka-init:
+    image: apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e
+    command:
+    - /bin/bash
+    - /opt/network/init.sh
+    environment:
+      KAFKA_ADMIN_PASSWORD: ${KAFKA_ADMIN_PASSWORD}
+    volumes:
+    - ./infra/kafka:/opt/network:ro
+    depends_on:
+      kafka:
+        condition: service_healthy
+volumes:
+  oracle-data: null
+  kafka-data: null
+  keycloak-data: null

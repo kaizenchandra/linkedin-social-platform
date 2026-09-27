@@ -1,0 +1,6 @@
+{
+  "openzipkin/zipkin:3.5.1": "openzipkin/zipkin:3.5.1@sha256:bb570eb45c2994eaf32da783cc098b3d51d1095b73ec92919863d73d0a9eaafb",
+  "prom/prometheus:v3.15.0": "prom/prometheus:v3.15.0@sha256:efd719c99d83b060d9daefdcf00360461adf279f45ef5391f8d111892118753e",
+  "grafana/grafana:13.2.2": "grafana/grafana:13.2.2@sha256:ac461fb352abc50da10a51c7d02462e9c05488f11f53f14b3ad79a8145f638a0",
+  "aquasec/trivy:0.74.0": "aquasec/trivy:0.74.0@sha256:62b1e65e8869bc4b4c6aa4fa2b21595256c7c2f6018a9d9ad61caf87187c1969"
+}

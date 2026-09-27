@@ -1,0 +1,13 @@
+{
+  "scanner": "Trivy0.74.0",
+  "date": "2026-09-27",
+  "severity": "HIGH,CRITICAL",
+  "findingsByImage": {
+    "member-service": 0,
+    "api-gateway": 0,
+    "notification-service": 0,
+    "content-service": 0
+  },
+  "fix": "Override Tomcat11.0.24 from Boot BOM with verified11.0.26; Temurin21.0.12.1_1 base",
+  "scope": "Four application images including bundled dependencies; not a claim that infrastructure images or every severity are vulnerability-free"
+}

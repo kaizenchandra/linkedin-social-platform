@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Network notification event v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "occurredAt",
+    "aggregateId",
+    "aggregateVersion",
+    "producer",
+    "correlationId",
+    "causationId",
+    "payload"
+  ],
+  "properties": {
+    "eventId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "eventType": {
+      "enum": [
+        "connection.requested",
+        "connection.accepted",
+        "post.liked",
+        "post.commented"
+      ]
+    },
+    "occurredAt": {
+      "type": "string"
+    },
+    "aggregateId": {
+      "type": "string"
+    },
+    "producer": {
+      "type": "string"
+    },
+    "correlationId": {
+      "type": "string"
+    },
+    "causationId": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "const": 1
+    },
+    "aggregateVersion": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actorId",
+        "recipientId"
+      ],
+      "properties": {
+        "actorId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "recipientId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    }
+  }
+}

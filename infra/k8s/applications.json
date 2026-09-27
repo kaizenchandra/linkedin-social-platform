@@ -1,0 +1,771 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "member-service",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "member-service"
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          }
+        },
+        "selector": {
+          "matchLabels": {
+            "app": "member-service"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "member-service"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "securityContext": {
+              "runAsUser": 10001,
+              "runAsNonRoot": true,
+              "fsGroup": 10001,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "terminationGracePeriodSeconds": 35,
+            "containers": [
+              {
+                "name": "member-service",
+                "image": "professional-network/member-service:0.1.0",
+                "imagePullPolicy": "IfNotPresent",
+                "env": [
+                  {
+                    "name": "OIDC_ISSUER",
+                    "value": "http://localhost:8180/realms/network"
+                  },
+                  {
+                    "name": "OIDC_JWKS",
+                    "value": "http://keycloak:8080/realms/network/protocol/openid-connect/certs"
+                  },
+                  {
+                    "name": "JAVA_TOOL_OPTIONS",
+                    "value": "-XX:MaxRAMPercentage=65"
+                  },
+                  {
+                    "name": "MEMBER_URL",
+                    "value": "http://member-service:8080"
+                  },
+                  {
+                    "name": "CONTENT_URL",
+                    "value": "http://content-service:8080"
+                  },
+                  {
+                    "name": "NOTIFICATION_URL",
+                    "value": "http://notification-service:8080"
+                  },
+                  {
+                    "name": "DB_URL",
+                    "value": "jdbc:oracle:thin:@//oracle:1521/FREEPDB1"
+                  },
+                  {
+                    "name": "DB_USER",
+                    "value": "member_runtime"
+                  },
+                  {
+                    "name": "DB_SCHEMA",
+                    "value": "member_app"
+                  },
+                  {
+                    "name": "DB_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "MEMBER_RUNTIME_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MIGRATIONS_ENABLED",
+                    "value": "false"
+                  },
+                  {
+                    "name": "KAFKA_BOOTSTRAP",
+                    "value": "kafka:19092"
+                  },
+                  {
+                    "name": "KAFKA_SECURITY_PROTOCOL",
+                    "value": "SASL_PLAINTEXT"
+                  },
+                  {
+                    "name": "KAFKA_USER",
+                    "value": "member"
+                  },
+                  {
+                    "name": "KAFKA_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "KAFKA_MEMBER_PASSWORD"
+                      }
+                    }
+                  }
+                ],
+                "ports": [
+                  {
+                    "containerPort": 8080
+                  },
+                  {
+                    "containerPort": 9090
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                  },
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "640Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "path": "/actuator/health/readiness",
+                    "port": 9090
+                  },
+                  "periodSeconds": 5,
+                  "failureThreshold": 60,
+                  "timeoutSeconds": 3
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/actuator/health/readiness",
+                    "port": 9090
+                  },
+                  "periodSeconds": 5,
+                  "timeoutSeconds": 3
+                },
+                "livenessProbe": {
+                  "httpGet": {
+                    "path": "/actuator/health/liveness",
+                    "port": 9090
+                  },
+                  "periodSeconds": 10,
+                  "failureThreshold": 6,
+                  "timeoutSeconds": 3
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "member-service",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "member-service"
+        }
+      },
+      "spec": {
+        "selector": {
+          "app": "member-service"
+        },
+        "ports": [
+          {
+            "name": "http",
+            "port": 8080,
+            "targetPort": 8080
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "content-service",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "content-service"
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          }
+        },
+        "selector": {
+          "matchLabels": {
+            "app": "content-service"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "content-service"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "securityContext": {
+              "runAsUser": 10001,
+              "runAsNonRoot": true,
+              "fsGroup": 10001,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "terminationGracePeriodSeconds": 35,
+            "containers": [
+              {
+                "name": "content-service",
+                "image": "professional-network/content-service:0.1.0",
+                "imagePullPolicy": "IfNotPresent",
+                "env": [
+                  {
+                    "name": "OIDC_ISSUER",
+                    "value": "http://localhost:8180/realms/network"
+                  },
+                  {
+                    "name": "OIDC_JWKS",
+                    "value": "http://keycloak:8080/realms/network/protocol/openid-connect/certs"
+                  },
+                  {
+                    "name": "JAVA_TOOL_OPTIONS",
+                    "value": "-XX:MaxRAMPercentage=65"
+                  },
+                  {
+                    "name": "MEMBER_URL",
+                    "value": "http://member-service:8080"
+                  },
+                  {
+                    "name": "CONTENT_URL",
+                    "value": "http://content-service:8080"
+                  },
+                  {
+                    "name": "NOTIFICATION_URL",
+                    "value": "http://notification-service:8080"
+                  },
+                  {
+                    "name": "OIDC_TOKEN_URL",
+                    "value": "http://keycloak:8080/realms/network/protocol/openid-connect/token"
+                  },
+                  {
+                    "name": "CONTENT_CLIENT_SECRET",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "CONTENT_CLIENT_SECRET"
+                      }
+                    }
+                  },
+                  {
+                    "name": "DB_URL",
+                    "value": "jdbc:oracle:thin:@//oracle:1521/FREEPDB1"
+                  },
+                  {
+                    "name": "DB_USER",
+                    "value": "content_runtime"
+                  },
+                  {
+                    "name": "DB_SCHEMA",
+                    "value": "content_app"
+                  },
+                  {
+                    "name": "DB_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "CONTENT_RUNTIME_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MIGRATIONS_ENABLED",
+                    "value": "false"
+                  },
+                  {
+                    "name": "KAFKA_BOOTSTRAP",
+                    "value": "kafka:19092"
+                  },
+                  {
+                    "name": "KAFKA_SECURITY_PROTOCOL",
+                    "value": "SASL_PLAINTEXT"
+                  },
+                  {
+                    "name": "KAFKA_USER",
+                    "value": "content"
+                  },
+                  {
+                    "name": "KAFKA_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "KAFKA_CONTENT_PASSWORD"
+                      }
+                    }
+                  }
+                ],
+                "ports": [
+                  {
+                    "containerPort": 8080
+                  },
+                  {
+                    "containerPort": 9090
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                  },
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "640Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "path": "/actuator/health/readiness",
+                    "port": 9090
+                  },
+                  "periodSeconds": 5,
+                  "failureThreshold": 60,
+                  "timeoutSeconds": 3
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/actuator/health/readiness",
+                    "port": 9090
+                  },
+                  "periodSeconds": 5,
+                  "timeoutSeconds": 3
+                },
+                "livenessProbe": {
+                  "httpGet": {
+                    "path": "/actuator/health/liveness",
+                    "port": 9090
+                  },
+                  "periodSeconds": 10,
+                  "failureThreshold": 6,
+                  "timeoutSeconds": 3
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "content-service",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "content-service"
+        }
+      },
+      "spec": {
+        "selector": {
+          "app": "content-service"
+        },
+        "ports": [
+          {
+            "name": "http",
+            "port": 8080,
+            "targetPort": 8080
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "notification-service",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "notification-service"
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          }
+        },
+        "selector": {
+          "matchLabels": {
+            "app": "notification-service"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "notification-service"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "securityContext": {
+              "runAsUser": 10001,
+              "runAsNonRoot": true,
+              "fsGroup": 10001,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "terminationGracePeriodSeconds": 35,
+            "containers": [
+              {
+                "name": "notification-service",
+                "image": "professional-network/notification-service:0.1.0",
+                "imagePullPolicy": "IfNotPresent",
+                "env": [
+                  {
+                    "name": "OIDC_ISSUER",
+                    "value": "http://localhost:8180/realms/network"
+                  },
+                  {
+                    "name": "OIDC_JWKS",
+                    "value": "http://keycloak:8080/realms/network/protocol/openid-connect/certs"
+                  },
+                  {
+                    "name": "JAVA_TOOL_OPTIONS",
+                    "value": "-XX:MaxRAMPercentage=65"
+                  },
+                  {
+                    "name": "MEMBER_URL",
+                    "value": "http://member-service:8080"
+                  },
+                  {
+                    "name": "CONTENT_URL",
+                    "value": "http://content-service:8080"
+                  },
+                  {
+                    "name": "NOTIFICATION_URL",
+                    "value": "http://notification-service:8080"
+                  },
+                  {
+                    "name": "DB_URL",
+                    "value": "jdbc:oracle:thin:@//oracle:1521/FREEPDB1"
+                  },
+                  {
+                    "name": "DB_USER",
+                    "value": "notification_runtime"
+                  },
+                  {
+                    "name": "DB_SCHEMA",
+                    "value": "notification_app"
+                  },
+                  {
+                    "name": "DB_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "NOTIFICATION_RUNTIME_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MIGRATIONS_ENABLED",
+                    "value": "false"
+                  },
+                  {
+                    "name": "KAFKA_BOOTSTRAP",
+                    "value": "kafka:19092"
+                  },
+                  {
+                    "name": "KAFKA_SECURITY_PROTOCOL",
+                    "value": "SASL_PLAINTEXT"
+                  },
+                  {
+                    "name": "KAFKA_USER",
+                    "value": "notification"
+                  },
+                  {
+                    "name": "KAFKA_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "KAFKA_NOTIFICATION_PASSWORD"
+                      }
+                    }
+                  }
+                ],
+                "ports": [
+                  {
+                    "containerPort": 8080
+                  },
+                  {
+                    "containerPort": 9090
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                  },
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "640Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "path": "/actuator/health/readiness",
+                    "port": 9090
+                  },
+                  "periodSeconds": 5,
+                  "failureThreshold": 60,
+                  "timeoutSeconds": 3
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/actuator/health/readiness",
+                    "port": 9090
+                  },
+                  "periodSeconds": 5,
+                  "timeoutSeconds": 3
+                },
+                "livenessProbe": {
+                  "httpGet": {
+                    "path": "/actuator/health/liveness",
+                    "port": 9090
+                  },
+                  "periodSeconds": 10,
+                  "failureThreshold": 6,
+                  "timeoutSeconds": 3
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "notification-service",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "notification-service"
+        }
+      },
+      "spec": {
+        "selector": {
+          "app": "notification-service"
+        },
+        "ports": [
+          {
+            "name": "http",
+            "port": 8080,
+            "targetPort": 8080
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "api-gateway",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "api-gateway"
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxSurge": 1,
+            "maxUnavailable": 0
+          }
+        },
+        "selector": {
+          "matchLabels": {
+            "app": "api-gateway"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "api-gateway"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "securityContext": {
+              "runAsUser": 10001,
+              "runAsNonRoot": true,
+              "fsGroup": 10001,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "terminationGracePeriodSeconds": 35,
+            "containers": [
+              {
+                "name": "api-gateway",
+                "image": "professional-network/api-gateway:0.1.0",
+                "imagePullPolicy": "IfNotPresent",
+                "env": [
+                  {
+                    "name": "OIDC_ISSUER",
+                    "value": "http://localhost:8180/realms/network"
+                  },
+                  {
+                    "name": "OIDC_JWKS",
+                    "value": "http://keycloak:8080/realms/network/protocol/openid-connect/certs"
+                  },
+                  {
+                    "name": "JAVA_TOOL_OPTIONS",
+                    "value": "-XX:MaxRAMPercentage=65"
+                  },
+                  {
+                    "name": "MEMBER_URL",
+                    "value": "http://member-service:8080"
+                  },
+                  {
+                    "name": "CONTENT_URL",
+                    "value": "http://content-service:8080"
+                  },
+                  {
+                    "name": "NOTIFICATION_URL",
+                    "value": "http://notification-service:8080"
+                  }
+                ],
+                "ports": [
+                  {
+                    "containerPort": 8080
+                  },
+                  {
+                    "containerPort": 9090
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                  },
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "640Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "startupProbe": {
+                  "httpGet": {
+                    "path": "/actuator/health/readiness",
+                    "port": 9090
+                  },
+                  "periodSeconds": 5,
+                  "failureThreshold": 60,
+                  "timeoutSeconds": 3
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/actuator/health/readiness",
+                    "port": 9090
+                  },
+                  "periodSeconds": 5,
+                  "timeoutSeconds": 3
+                },
+                "livenessProbe": {
+                  "httpGet": {
+                    "path": "/actuator/health/liveness",
+                    "port": 9090
+                  },
+                  "periodSeconds": 10,
+                  "failureThreshold": 6,
+                  "timeoutSeconds": 3
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "api-gateway",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "api-gateway"
+        }
+      },
+      "spec": {
+        "selector": {
+          "app": "api-gateway"
+        },
+        "ports": [
+          {
+            "name": "http",
+            "port": 8080,
+            "targetPort": 8080,
+            "nodePort": 30080
+          }
+        ],
+        "type": "NodePort"
+      }
+    }
+  ]
+}

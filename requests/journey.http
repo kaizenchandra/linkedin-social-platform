@@ -1,0 +1,95 @@
+# Run auth-test-setup.py then http-env.py; choose the local environment.
+# Never commit http-client.private.env.json. Refresh-session.py then http-env.py renews tokens.
+
+### Alice profile
+PUT {{baseUrl}}/api/v1/members/me
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{"displayName":"Alice","headline":"Engineer","experiences":[]}
+
+### Bob profile
+PUT {{baseUrl}}/api/v1/members/me
+Authorization: Bearer {{bobToken}}
+Content-Type: application/json
+
+{"displayName":"Bob","headline":"Engineer","experiences":[]}
+
+### Send request
+POST {{baseUrl}}/api/v1/connections
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{"targetId":"{{bobId}}"}
+
+> {% client.test("requested", () => client.assert(response.status === 200)); client.global.set("connectionId", response.body.id); %}
+
+### Accept as recipient
+POST {{baseUrl}}/api/v1/connections/{{connectionId}}/accept
+Authorization: Bearer {{bobToken}}
+
+### Create post
+POST {{baseUrl}}/api/v1/posts
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{"body":"A professional networking post"}
+
+> {% client.global.set("postId", response.body.id); %}
+
+### Connected feed
+GET {{baseUrl}}/api/v1/feed?size=20
+Authorization: Bearer {{bobToken}}
+
+### Like (repeat is idempotent)
+PUT {{baseUrl}}/api/v1/posts/{{postId}}/like
+Authorization: Bearer {{bobToken}}
+
+### Comment
+POST {{baseUrl}}/api/v1/posts/{{postId}}/comments
+Authorization: Bearer {{bobToken}}
+Content-Type: application/json
+
+{"body":"Useful discussion"}
+
+### Poll author notifications until like/comment appear
+GET {{baseUrl}}/api/v1/notifications?size=100
+Authorization: Bearer {{aliceToken}}
+
+> {% if (response.body.length) client.global.set("notificationId", response.body[0].id); %}
+
+### Mark read (repeat is idempotent)
+PUT {{baseUrl}}/api/v1/notifications/{{notificationId}}/read
+Authorization: Bearer {{aliceToken}}
+
+### Third user cannot edit post
+PUT {{baseUrl}}/api/v1/posts/{{postId}}
+Authorization: Bearer {{charlieToken}}
+Content-Type: application/json
+
+{"body":"Forged edit"}
+
+> {% client.test("ownership enforced", () => client.assert(response.status === 404)); %}
+
+### Third user cannot mark another user's notification
+PUT {{baseUrl}}/api/v1/notifications/{{notificationId}}/read
+Authorization: Bearer {{charlieToken}}
+
+> {% client.test("notification isolation", () => client.assert(response.status === 404)); %}
+
+### Remove connection
+POST {{baseUrl}}/api/v1/connections/{{connectionId}}/remove
+Authorization: Bearer {{aliceToken}}
+
+### Feed no longer includes Alice, but direct authenticated post access remains allowed
+GET {{baseUrl}}/api/v1/feed
+Authorization: Bearer {{bobToken}}
+
+### Public authenticated post
+GET {{baseUrl}}/api/v1/posts/{{postId}}
+Authorization: Bearer {{charlieToken}}
+
+### Anonymous rejection
+GET {{baseUrl}}/api/v1/members/me
+
+> {% client.test("authentication required", () => client.assert(response.status === 401)); %}

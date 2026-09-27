@@ -1,0 +1,62 @@
+{
+  "verifiedAtUtc": "2026-09-27T05:24:43.846201+00:00",
+  "cluster": "professional-network-mvp",
+  "namespace": "network-mvp",
+  "deployments": {
+    "api-gateway": {
+      "desired": 1,
+      "ready": 1,
+      "available": 1
+    },
+    "content-service": {
+      "desired": 1,
+      "ready": 1,
+      "available": 1
+    },
+    "kafka": {
+      "desired": 1,
+      "ready": 1,
+      "available": 1
+    },
+    "keycloak": {
+      "desired": 1,
+      "ready": 1,
+      "available": 1
+    },
+    "member-service": {
+      "desired": 1,
+      "ready": 1,
+      "available": 1
+    },
+    "notification-service": {
+      "desired": 1,
+      "ready": 1,
+      "available": 1
+    },
+    "oracle": {
+      "desired": 1,
+      "ready": 1,
+      "available": 1
+    }
+  },
+  "jobs": {
+    "content-migration-v1": "Complete",
+    "kafka-acls-v1": "Complete",
+    "member-migration-v1": "Complete",
+    "notification-migration-v1": "Complete"
+  },
+  "persistentVolumeClaims": {
+    "kafka-data": "Bound",
+    "keycloak-data": "Bound",
+    "oracle-data": "Bound"
+  },
+  "acceptanceChecks": [
+    "Real PKCE login, refresh and logout",
+    "Three-user API smoke and notification ownership",
+    "OpenAPI and event contracts",
+    "Kafka replay deduplication",
+    "Twenty actions with two ready content/relay replicas",
+    "Rolling restart of four applications preserves exact business state",
+    "Server-side dry-run of all three manifest files"
+  ]
+}

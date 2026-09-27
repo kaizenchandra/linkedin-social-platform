@@ -1,0 +1,867 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Namespace",
+      "metadata": {
+        "name": "network-mvp"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "oracle-init",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "oracle-init"
+        }
+      },
+      "data": {
+        "001-users.sh": "#!/bin/bash\nset -euo pipefail\nfor service in member content notification; do\n  upper=${service^^}\n  owner_key=${upper}_DB_PASSWORD\n  runtime_key=${upper}_RUNTIME_PASSWORD\n  sqlplus -s / as sysdba <<SQL\nWHENEVER SQLERROR EXIT SQL.SQLCODE\nALTER SESSION SET CONTAINER=FREEPDB1;\nCREATE USER ${service}_app IDENTIFIED BY \"${!owner_key}\" QUOTA 100M ON USERS;\nGRANT CREATE SESSION, CREATE TABLE, CREATE SEQUENCE TO ${service}_app;\nCREATE USER ${service}_runtime IDENTIFIED BY \"${!runtime_key}\";\nGRANT CREATE SESSION TO ${service}_runtime;\nSQL\ndone\n"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "keycloak-realm",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "keycloak-realm"
+        }
+      },
+      "data": {
+        "network-realm.json": "{\n  \"realm\": \"network\",\n  \"enabled\": true,\n  \"registrationAllowed\": true,\n  \"resetPasswordAllowed\": true,\n  \"accessTokenLifespan\": 300,\n  \"sslRequired\": \"none\",\n  \"roles\": {\n    \"realm\": []\n  },\n  \"clientScopes\": [\n    {\n      \"name\": \"network-audience\",\n      \"protocol\": \"openid-connect\",\n      \"protocolMappers\": [\n        {\n          \"name\": \"audience\",\n          \"protocol\": \"openid-connect\",\n          \"protocolMapper\": \"oidc-audience-mapper\",\n          \"config\": {\n            \"included.custom.audience\": \"network-api\",\n            \"access.token.claim\": \"true\"\n          }\n        },\n        {\n          \"name\": \"subject\",\n          \"protocol\": \"openid-connect\",\n          \"protocolMapper\": \"oidc-sub-mapper\",\n          \"config\": {\n            \"access.token.claim\": \"true\",\n            \"id.token.claim\": \"true\",\n            \"introspection.token.claim\": \"true\"\n          }\n        }\n      ]\n    },\n    {\n      \"name\": \"connections.read\",\n      \"protocol\": \"openid-connect\",\n      \"attributes\": {\n        \"include.in.token.scope\": \"true\"\n      }\n    },\n    {\n      \"name\": \"metrics.read\",\n      \"protocol\": \"openid-connect\",\n      \"attributes\": {\n        \"include.in.token.scope\": \"true\"\n      }\n    }\n  ],\n  \"clients\": [\n    {\n      \"clientId\": \"network-web\",\n      \"publicClient\": true,\n      \"standardFlowEnabled\": true,\n      \"directAccessGrantsEnabled\": false,\n      \"redirectUris\": [\n        \"http://localhost:3000/callback\",\n        \"http://localhost:8765/callback\"\n      ],\n      \"webOrigins\": [\n        \"http://localhost:3000\"\n      ],\n      \"attributes\": {\n        \"pkce.code.challenge.method\": \"S256\"\n      },\n      \"defaultClientScopes\": [\n        \"network-audience\"\n      ]\n    },\n    {\n      \"clientId\": \"content-internal\",\n      \"publicClient\": false,\n      \"secret\": \"${CONTENT_CLIENT_SECRET}\",\n      \"serviceAccountsEnabled\": true,\n      \"standardFlowEnabled\": false,\n      \"directAccessGrantsEnabled\": false,\n      \"defaultClientScopes\": [\n        \"network-audience\",\n        \"connections.read\"\n      ]\n    },\n    {\n      \"clientId\": \"metrics\",\n      \"publicClient\": false,\n      \"secret\": \"${METRICS_CLIENT_SECRET}\",\n      \"serviceAccountsEnabled\": true,\n      \"standardFlowEnabled\": false,\n      \"directAccessGrantsEnabled\": false,\n      \"defaultClientScopes\": [\n        \"network-audience\",\n        \"metrics.read\"\n      ]\n    }\n  ]\n}\n"
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "oracle-data",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "oracle-data"
+        }
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "8Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "oracle",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "oracle"
+        }
+      },
+      "spec": {
+        "selector": {
+          "app": "oracle"
+        },
+        "ports": [
+          {
+            "name": "tcp",
+            "port": 1521,
+            "targetPort": 1521
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "oracle",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "oracle"
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "strategy": {
+          "type": "Recreate"
+        },
+        "selector": {
+          "matchLabels": {
+            "app": "oracle"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "oracle"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "securityContext": {
+              "runAsUser": 54321,
+              "runAsNonRoot": true,
+              "fsGroup": 54321,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "terminationGracePeriodSeconds": 35,
+            "containers": [
+              {
+                "name": "oracle",
+                "image": "gvenzl/oracle-free:23.9-slim-faststart@sha256:6e0217d72368dd9c213d75274bc2bcb1682a103680090998a8943a173670aba3",
+                "imagePullPolicy": "IfNotPresent",
+                "env": [
+                  {
+                    "name": "ORACLE_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "ORACLE_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MEMBER_DB_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "MEMBER_DB_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "MEMBER_RUNTIME_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "MEMBER_RUNTIME_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "CONTENT_DB_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "CONTENT_DB_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "CONTENT_RUNTIME_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "CONTENT_RUNTIME_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "NOTIFICATION_DB_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "NOTIFICATION_DB_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "NOTIFICATION_RUNTIME_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "NOTIFICATION_RUNTIME_PASSWORD"
+                      }
+                    }
+                  }
+                ],
+                "ports": [
+                  {
+                    "containerPort": 1521
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                  },
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "3Gi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/opt/oracle/oradata"
+                  },
+                  {
+                    "name": "init",
+                    "mountPath": "/container-entrypoint-initdb.d"
+                  },
+                  {
+                    "name": "shm",
+                    "mountPath": "/dev/shm"
+                  }
+                ],
+                "startupProbe": {
+                  "exec": {
+                    "command": [
+                      "healthcheck.sh"
+                    ]
+                  },
+                  "periodSeconds": 5,
+                  "failureThreshold": 60,
+                  "timeoutSeconds": 3
+                },
+                "readinessProbe": {
+                  "exec": {
+                    "command": [
+                      "healthcheck.sh"
+                    ]
+                  },
+                  "periodSeconds": 5,
+                  "timeoutSeconds": 3
+                },
+                "livenessProbe": {
+                  "exec": {
+                    "command": [
+                      "healthcheck.sh"
+                    ]
+                  },
+                  "periodSeconds": 10,
+                  "failureThreshold": 6,
+                  "timeoutSeconds": 3
+                },
+                "command": [
+                  "/opt/oracle/container-entrypoint.sh"
+                ]
+              }
+            ],
+            "volumes": [
+              {
+                "name": "data",
+                "persistentVolumeClaim": {
+                  "claimName": "oracle-data"
+                }
+              },
+              {
+                "name": "init",
+                "configMap": {
+                  "name": "oracle-init",
+                  "defaultMode": 493
+                }
+              },
+              {
+                "name": "shm",
+                "emptyDir": {
+                  "medium": "Memory",
+                  "sizeLimit": "1Gi"
+                }
+              }
+            ],
+            "initContainers": [
+              {
+                "name": "seed-faststart-volume",
+                "image": "gvenzl/oracle-free:23.9-slim-faststart@sha256:6e0217d72368dd9c213d75274bc2bcb1682a103680090998a8943a173670aba3",
+                "command": [
+                  "/bin/bash",
+                  "-ec",
+                  "test -f /opt/oracle/oradata/FREE/control01.ctl\nif [ ! -d /data/FREE ]; then\n  # Preserve configuration from an interrupted first initialization. No database\n  # files exist in this branch; never overwrite an existing FREE directory.\n  if [ -d /data/dbconfig/FREE ]; then mv /data/dbconfig/FREE /data/dbconfig/failed-init-FREE-$(date +%s); fi\n  cp -a /opt/oracle/oradata/FREE /data/FREE\nfi\ntest -f /data/FREE/control01.ctl"
+                ],
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/data"
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  },
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "256Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "kafka-data",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "kafka-data"
+        }
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "2Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "kafka",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "kafka"
+        }
+      },
+      "spec": {
+        "selector": {
+          "app": "kafka"
+        },
+        "ports": [
+          {
+            "name": "tcp",
+            "port": 19092,
+            "targetPort": 19092
+          },
+          {
+            "name": "controller",
+            "port": 9093,
+            "targetPort": 9093
+          }
+        ],
+        "clusterIP": "None",
+        "publishNotReadyAddresses": true
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "kafka",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "kafka"
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "strategy": {
+          "type": "Recreate"
+        },
+        "selector": {
+          "matchLabels": {
+            "app": "kafka"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "kafka"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "securityContext": {
+              "runAsUser": 1000,
+              "runAsNonRoot": true,
+              "fsGroup": 1000,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "terminationGracePeriodSeconds": 35,
+            "containers": [
+              {
+                "name": "kafka",
+                "image": "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e",
+                "imagePullPolicy": "IfNotPresent",
+                "env": [
+                  {
+                    "name": "KAFKA_NODE_ID",
+                    "value": "1"
+                  },
+                  {
+                    "name": "KAFKA_PROCESS_ROLES",
+                    "value": "broker,controller"
+                  },
+                  {
+                    "name": "KAFKA_LISTENERS",
+                    "value": "INTERNAL://:19092,CONTROLLER://:9093"
+                  },
+                  {
+                    "name": "KAFKA_ADVERTISED_LISTENERS",
+                    "value": "INTERNAL://kafka:19092"
+                  },
+                  {
+                    "name": "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP",
+                    "value": "INTERNAL:SASL_PLAINTEXT,CONTROLLER:SASL_PLAINTEXT"
+                  },
+                  {
+                    "name": "KAFKA_INTER_BROKER_LISTENER_NAME",
+                    "value": "INTERNAL"
+                  },
+                  {
+                    "name": "KAFKA_CONTROLLER_LISTENER_NAMES",
+                    "value": "CONTROLLER"
+                  },
+                  {
+                    "name": "KAFKA_CONTROLLER_QUORUM_VOTERS",
+                    "value": "1@kafka:9093"
+                  },
+                  {
+                    "name": "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR",
+                    "value": "1"
+                  },
+                  {
+                    "name": "KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR",
+                    "value": "1"
+                  },
+                  {
+                    "name": "KAFKA_TRANSACTION_STATE_LOG_MIN_ISR",
+                    "value": "1"
+                  },
+                  {
+                    "name": "KAFKA_LOG_DIRS",
+                    "value": "/var/lib/kafka/data"
+                  },
+                  {
+                    "name": "KAFKA_HEAP_OPTS",
+                    "value": "-Xms256m -Xmx512m"
+                  },
+                  {
+                    "name": "CLUSTER_ID",
+                    "value": "MkU3OEVBNTcwNTJENDM2Qk"
+                  },
+                  {
+                    "name": "KAFKA_SASL_ENABLED_MECHANISMS",
+                    "value": "PLAIN"
+                  },
+                  {
+                    "name": "KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL",
+                    "value": "PLAIN"
+                  },
+                  {
+                    "name": "KAFKA_SASL_MECHANISM_CONTROLLER_PROTOCOL",
+                    "value": "PLAIN"
+                  },
+                  {
+                    "name": "KAFKA_AUTHORIZER_CLASS_NAME",
+                    "value": "org.apache.kafka.metadata.authorizer.StandardAuthorizer"
+                  },
+                  {
+                    "name": "KAFKA_SUPER_USERS",
+                    "value": "User:admin"
+                  },
+                  {
+                    "name": "KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND",
+                    "value": "false"
+                  },
+                  {
+                    "name": "KAFKA_ADMIN_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "KAFKA_ADMIN_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "KAFKA_MEMBER_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "KAFKA_MEMBER_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "KAFKA_CONTENT_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "KAFKA_CONTENT_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "KAFKA_NOTIFICATION_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "KAFKA_NOTIFICATION_PASSWORD"
+                      }
+                    }
+                  }
+                ],
+                "ports": [
+                  {
+                    "containerPort": 19092
+                  },
+                  {
+                    "containerPort": 9093
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                  },
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "1Gi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/var/lib/kafka/data"
+                  },
+                  {
+                    "name": "scripts",
+                    "mountPath": "/opt/network"
+                  }
+                ],
+                "startupProbe": {
+                  "exec": {
+                    "command": [
+                      "/opt/kafka/bin/kafka-topics.sh",
+                      "--bootstrap-server",
+                      "localhost:19092",
+                      "--list",
+                      "--command-config",
+                      "/tmp/admin.properties"
+                    ]
+                  },
+                  "periodSeconds": 5,
+                  "failureThreshold": 60,
+                  "timeoutSeconds": 3
+                },
+                "readinessProbe": {
+                  "exec": {
+                    "command": [
+                      "/opt/kafka/bin/kafka-topics.sh",
+                      "--bootstrap-server",
+                      "localhost:19092",
+                      "--list",
+                      "--command-config",
+                      "/tmp/admin.properties"
+                    ]
+                  },
+                  "periodSeconds": 5,
+                  "timeoutSeconds": 3
+                },
+                "livenessProbe": {
+                  "exec": {
+                    "command": [
+                      "/opt/kafka/bin/kafka-topics.sh",
+                      "--bootstrap-server",
+                      "localhost:19092",
+                      "--list",
+                      "--command-config",
+                      "/tmp/admin.properties"
+                    ]
+                  },
+                  "periodSeconds": 10,
+                  "failureThreshold": 6,
+                  "timeoutSeconds": 3
+                },
+                "command": [
+                  "/bin/bash",
+                  "/opt/network/start.sh"
+                ]
+              }
+            ],
+            "volumes": [
+              {
+                "name": "data",
+                "persistentVolumeClaim": {
+                  "claimName": "kafka-data"
+                }
+              },
+              {
+                "name": "scripts",
+                "configMap": {
+                  "name": "kafka-scripts"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": {
+        "name": "keycloak-data",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "keycloak-data"
+        }
+      },
+      "spec": {
+        "accessModes": [
+          "ReadWriteOnce"
+        ],
+        "resources": {
+          "requests": {
+            "storage": "1Gi"
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": {
+        "name": "keycloak",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "keycloak"
+        }
+      },
+      "spec": {
+        "selector": {
+          "app": "keycloak"
+        },
+        "ports": [
+          {
+            "name": "http",
+            "port": 8080,
+            "targetPort": 8080,
+            "nodePort": 30180
+          }
+        ],
+        "type": "NodePort"
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": {
+        "name": "keycloak",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "keycloak"
+        }
+      },
+      "spec": {
+        "replicas": 1,
+        "strategy": {
+          "type": "Recreate"
+        },
+        "selector": {
+          "matchLabels": {
+            "app": "keycloak"
+          }
+        },
+        "template": {
+          "metadata": {
+            "labels": {
+              "app": "keycloak"
+            }
+          },
+          "spec": {
+            "automountServiceAccountToken": false,
+            "securityContext": {
+              "runAsUser": 1000,
+              "runAsNonRoot": true,
+              "fsGroup": 1000,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "terminationGracePeriodSeconds": 35,
+            "containers": [
+              {
+                "name": "keycloak",
+                "image": "quay.io/keycloak/keycloak:26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c",
+                "imagePullPolicy": "IfNotPresent",
+                "env": [
+                  {
+                    "name": "KC_BOOTSTRAP_ADMIN_USERNAME",
+                    "value": "admin"
+                  },
+                  {
+                    "name": "KC_BOOTSTRAP_ADMIN_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "KEYCLOAK_ADMIN_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "CONTENT_CLIENT_SECRET",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "CONTENT_CLIENT_SECRET"
+                      }
+                    }
+                  },
+                  {
+                    "name": "METRICS_CLIENT_SECRET",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "METRICS_CLIENT_SECRET"
+                      }
+                    }
+                  },
+                  {
+                    "name": "KC_HOSTNAME",
+                    "value": "http://localhost:8180"
+                  },
+                  {
+                    "name": "KC_HEALTH_ENABLED",
+                    "value": "true"
+                  }
+                ],
+                "ports": [
+                  {
+                    "containerPort": 8080
+                  },
+                  {
+                    "containerPort": 9000
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "256Mi"
+                  },
+                  "limits": {
+                    "cpu": "2",
+                    "memory": "1Gi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "data",
+                    "mountPath": "/opt/keycloak/data"
+                  },
+                  {
+                    "name": "realm",
+                    "mountPath": "/opt/keycloak/data/import"
+                  }
+                ],
+                "args": [
+                  "start-dev",
+                  "--import-realm"
+                ],
+                "startupProbe": {
+                  "httpGet": {
+                    "path": "/health/ready",
+                    "port": 9000
+                  },
+                  "periodSeconds": 5,
+                  "failureThreshold": 60,
+                  "timeoutSeconds": 3
+                },
+                "readinessProbe": {
+                  "httpGet": {
+                    "path": "/health/ready",
+                    "port": 9000
+                  },
+                  "periodSeconds": 5,
+                  "timeoutSeconds": 3
+                },
+                "livenessProbe": {
+                  "httpGet": {
+                    "path": "/health/ready",
+                    "port": 9000
+                  },
+                  "periodSeconds": 10,
+                  "failureThreshold": 6,
+                  "timeoutSeconds": 3
+                }
+              }
+            ],
+            "volumes": [
+              {
+                "name": "data",
+                "persistentVolumeClaim": {
+                  "claimName": "keycloak-data"
+                }
+              },
+              {
+                "name": "realm",
+                "configMap": {
+                  "name": "keycloak-realm"
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "ConfigMap",
+      "metadata": {
+        "name": "kafka-scripts",
+        "namespace": "network-mvp"
+      },
+      "data": {
+        "init.sh": "#!/bin/bash\nset -euo pipefail\nsource /opt/network/client-properties.sh\nserver=${KAFKA_BOOTSTRAP:-kafka:19092}\nfor topic in network.events.v1 network.events.v1.DLT; do\n /opt/kafka/bin/kafka-topics.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --create --if-not-exists --topic \"$topic\" --partitions 3 --replication-factor 1\n done\nfor user in member content; do\n /opt/kafka/bin/kafka-acls.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --add --allow-principal \"User:$user\" --operation Write --operation Describe --topic network.events.v1\n done\n/opt/kafka/bin/kafka-acls.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --add --allow-principal User:notification --operation Read --operation Describe --topic network.events.v1\n/opt/kafka/bin/kafka-acls.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --add --allow-principal User:notification --operation Read --group notifications-v1\n/opt/kafka/bin/kafka-acls.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --add --allow-principal User:notification --operation Write --operation Describe --topic network.events.v1.DLT\nfor user in member content notification; do\n /opt/kafka/bin/kafka-acls.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --add --allow-principal \"User:$user\" --operation IdempotentWrite --cluster\n done\n",
+        "client-properties.sh": "#!/bin/bash\nset -euo pipefail\numask 077\nprintf 'security.protocol=SASL_PLAINTEXT\\nsasl.mechanism=PLAIN\\nsasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"%s\";\\n' \"$KAFKA_ADMIN_PASSWORD\" > /tmp/admin.properties\n",
+        "start.sh": "#!/bin/bash\nset -euo pipefail\nsource /opt/network/client-properties.sh\njaas=\"org.apache.kafka.common.security.plain.PlainLoginModule required username=\\\"admin\\\" password=\\\"${KAFKA_ADMIN_PASSWORD}\\\" user_admin=\\\"${KAFKA_ADMIN_PASSWORD}\\\" user_member=\\\"${KAFKA_MEMBER_PASSWORD}\\\" user_content=\\\"${KAFKA_CONTENT_PASSWORD}\\\" user_notification=\\\"${KAFKA_NOTIFICATION_PASSWORD}\\\";\"\nexport KAFKA_LISTENER_NAME_INTERNAL_PLAIN_SASL_JAAS_CONFIG=\"$jaas\"\nexport KAFKA_LISTENER_NAME_EXTERNAL_PLAIN_SASL_JAAS_CONFIG=\"$jaas\"\nexport KAFKA_LISTENER_NAME_CONTROLLER_PLAIN_SASL_JAAS_CONFIG=\"$jaas\"\nexec /etc/kafka/docker/run\n"
+      }
+    }
+  ]
+}
