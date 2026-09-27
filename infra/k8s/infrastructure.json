@@ -21,7 +21,8 @@
       },
       "data": {
         "001-users.sh": "#!/bin/bash\nset -euo pipefail\nfor service in member content notification; do\n  upper=${service^^}\n  owner_key=${upper}_DB_PASSWORD\n  runtime_key=${upper}_RUNTIME_PASSWORD\n  sqlplus -s / as sysdba <<SQL\nWHENEVER SQLERROR EXIT SQL.SQLCODE\nALTER SESSION SET CONTAINER=FREEPDB1;\nCREATE USER ${service}_app IDENTIFIED BY \"${!owner_key}\" QUOTA 100M ON USERS;\nGRANT CREATE SESSION, CREATE TABLE, CREATE SEQUENCE TO ${service}_app;\nCREATE USER ${service}_runtime IDENTIFIED BY \"${!runtime_key}\";\nGRANT CREATE SESSION TO ${service}_runtime;\nSQL\ndone\n",
-        "002-mvp2-users.sh": "#!/bin/bash\nset -euo pipefail\nfor service in media messaging; do\n  upper=${service^^}\n  owner_key=${upper}_DB_PASSWORD\n  runtime_key=${upper}_RUNTIME_PASSWORD\n  sqlplus -s / as sysdba <<SQL\nWHENEVER SQLERROR EXIT SQL.SQLCODE\nALTER SESSION SET CONTAINER=FREEPDB1;\nDECLARE n NUMBER;\nBEGIN\n SELECT COUNT(*) INTO n FROM dba_users WHERE username=UPPER('${service}_app');\n IF n=0 THEN\n  EXECUTE IMMEDIATE 'CREATE USER ${service}_app IDENTIFIED BY \"${!owner_key}\" QUOTA 500M ON USERS';\n  EXECUTE IMMEDIATE 'GRANT CREATE SESSION, CREATE TABLE, CREATE SEQUENCE TO ${service}_app';\n END IF;\n SELECT COUNT(*) INTO n FROM dba_users WHERE username=UPPER('${service}_runtime');\n IF n=0 THEN\n  EXECUTE IMMEDIATE 'CREATE USER ${service}_runtime IDENTIFIED BY \"${!runtime_key}\"';\n  EXECUTE IMMEDIATE 'GRANT CREATE SESSION TO ${service}_runtime';\n END IF;\nEND;\n/\nSQL\ndone\n"
+        "002-mvp2-users.sh": "#!/bin/bash\nset -euo pipefail\nfor service in media messaging; do\n  upper=${service^^}\n  owner_key=${upper}_DB_PASSWORD\n  runtime_key=${upper}_RUNTIME_PASSWORD\n  sqlplus -s / as sysdba <<SQL\nWHENEVER SQLERROR EXIT SQL.SQLCODE\nALTER SESSION SET CONTAINER=FREEPDB1;\nDECLARE n NUMBER;\nBEGIN\n SELECT COUNT(*) INTO n FROM dba_users WHERE username=UPPER('${service}_app');\n IF n=0 THEN\n  EXECUTE IMMEDIATE 'CREATE USER ${service}_app IDENTIFIED BY \"${!owner_key}\" QUOTA 500M ON USERS';\n  EXECUTE IMMEDIATE 'GRANT CREATE SESSION, CREATE TABLE, CREATE SEQUENCE TO ${service}_app';\n END IF;\n SELECT COUNT(*) INTO n FROM dba_users WHERE username=UPPER('${service}_runtime');\n IF n=0 THEN\n  EXECUTE IMMEDIATE 'CREATE USER ${service}_runtime IDENTIFIED BY \"${!runtime_key}\"';\n  EXECUTE IMMEDIATE 'GRANT CREATE SESSION TO ${service}_runtime';\n END IF;\nEND;\n/\nSQL\ndone\n",
+        "003-hiring-users.sh": "#!/bin/bash\nset -euo pipefail\nfor service in hiring; do\n  upper=${service^^}\n  owner_key=${upper}_DB_PASSWORD\n  runtime_key=${upper}_RUNTIME_PASSWORD\n  sqlplus -s / as sysdba <<SQL\nWHENEVER SQLERROR EXIT SQL.SQLCODE\nALTER SESSION SET CONTAINER=FREEPDB1;\nDECLARE n NUMBER;\nBEGIN\n SELECT COUNT(*) INTO n FROM dba_users WHERE username=UPPER('${service}_app');\n IF n=0 THEN\n  EXECUTE IMMEDIATE 'CREATE USER ${service}_app IDENTIFIED BY \"${!owner_key}\" QUOTA 500M ON USERS';\n  EXECUTE IMMEDIATE 'GRANT CREATE SESSION, CREATE TABLE, CREATE SEQUENCE TO ${service}_app';\n END IF;\n SELECT COUNT(*) INTO n FROM dba_users WHERE username=UPPER('${service}_runtime');\n IF n=0 THEN\n  EXECUTE IMMEDIATE 'CREATE USER ${service}_runtime IDENTIFIED BY \"${!runtime_key}\"';\n  EXECUTE IMMEDIATE 'GRANT CREATE SESSION TO ${service}_runtime';\n END IF;\nEND;\n/\nSQL\ndone\n"
       }
     },
     {
@@ -35,7 +36,7 @@
         }
       },
       "data": {
-        "network-realm.json": "{\n  \"realm\": \"network\",\n  \"enabled\": true,\n  \"registrationAllowed\": true,\n  \"resetPasswordAllowed\": true,\n  \"accessTokenLifespan\": 300,\n  \"sslRequired\": \"none\",\n  \"roles\": {\n    \"realm\": [\n      {\n        \"name\": \"moderator\",\n        \"description\": \"Explicit audited content moderation only\"\n      }\n    ]\n  },\n  \"clientScopes\": [\n    {\n      \"name\": \"network-audience\",\n      \"protocol\": \"openid-connect\",\n      \"protocolMappers\": [\n        {\n          \"name\": \"audience\",\n          \"protocol\": \"openid-connect\",\n          \"protocolMapper\": \"oidc-audience-mapper\",\n          \"config\": {\n            \"included.custom.audience\": \"network-api\",\n            \"access.token.claim\": \"true\"\n          }\n        },\n        {\n          \"name\": \"subject\",\n          \"protocol\": \"openid-connect\",\n          \"protocolMapper\": \"oidc-sub-mapper\",\n          \"config\": {\n            \"access.token.claim\": \"true\",\n            \"id.token.claim\": \"true\",\n            \"introspection.token.claim\": \"true\"\n          }\n        },\n        {\n          \"name\": \"trusted-realm-roles\",\n          \"protocol\": \"openid-connect\",\n          \"protocolMapper\": \"oidc-usermodel-realm-role-mapper\",\n          \"config\": {\n            \"claim.name\": \"realm_access.roles\",\n            \"jsonType.label\": \"String\",\n            \"multivalued\": \"true\",\n            \"access.token.claim\": \"true\"\n          }\n        }\n      ]\n    },\n    {\n      \"name\": \"connections.read\",\n      \"protocol\": \"openid-connect\",\n      \"attributes\": {\n        \"include.in.token.scope\": \"true\"\n      }\n    },\n    {\n      \"name\": \"metrics.read\",\n      \"protocol\": \"openid-connect\",\n      \"attributes\": {\n        \"include.in.token.scope\": \"true\"\n      }\n    },\n    {\n      \"name\": \"media.manage\",\n      \"protocol\": \"openid-connect\",\n      \"attributes\": {\n        \"include.in.token.scope\": \"true\"\n      }\n    }\n  ],\n  \"clients\": [\n    {\n      \"clientId\": \"network-web\",\n      \"publicClient\": true,\n      \"standardFlowEnabled\": true,\n      \"directAccessGrantsEnabled\": false,\n      \"redirectUris\": [\n        \"http://localhost:3000/callback\",\n        \"http://localhost:8765/callback\"\n      ],\n      \"webOrigins\": [\n        \"http://localhost:3000\"\n      ],\n      \"attributes\": {\n        \"pkce.code.challenge.method\": \"S256\"\n      },\n      \"defaultClientScopes\": [\n        \"network-audience\"\n      ]\n    },\n    {\n      \"clientId\": \"content-internal\",\n      \"publicClient\": false,\n      \"secret\": \"${CONTENT_CLIENT_SECRET}\",\n      \"serviceAccountsEnabled\": true,\n      \"standardFlowEnabled\": false,\n      \"directAccessGrantsEnabled\": false,\n      \"defaultClientScopes\": [\n        \"network-audience\",\n        \"connections.read\"\n      ]\n    },\n    {\n      \"clientId\": \"metrics\",\n      \"publicClient\": false,\n      \"secret\": \"${METRICS_CLIENT_SECRET}\",\n      \"serviceAccountsEnabled\": true,\n      \"standardFlowEnabled\": false,\n      \"directAccessGrantsEnabled\": false,\n      \"defaultClientScopes\": [\n        \"network-audience\",\n        \"metrics.read\"\n      ]\n    },\n    {\n      \"clientId\": \"media-internal\",\n      \"publicClient\": false,\n      \"secret\": \"${MEDIA_CLIENT_SECRET}\",\n      \"serviceAccountsEnabled\": true,\n      \"standardFlowEnabled\": false,\n      \"directAccessGrantsEnabled\": false,\n      \"defaultClientScopes\": [\n        \"network-audience\",\n        \"connections.read\",\n        \"media.manage\"\n      ]\n    },\n    {\n      \"clientId\": \"messaging-internal\",\n      \"publicClient\": false,\n      \"secret\": \"${MESSAGING_CLIENT_SECRET}\",\n      \"serviceAccountsEnabled\": true,\n      \"standardFlowEnabled\": false,\n      \"directAccessGrantsEnabled\": false,\n      \"defaultClientScopes\": [\n        \"network-audience\",\n        \"connections.read\"\n      ]\n    }\n  ]\n}\n"
+        "network-realm.json": "{\n  \"realm\": \"network\",\n  \"enabled\": true,\n  \"registrationAllowed\": true,\n  \"resetPasswordAllowed\": true,\n  \"accessTokenLifespan\": 300,\n  \"sslRequired\": \"none\",\n  \"roles\": {\n    \"realm\": [\n      {\n        \"name\": \"moderator\",\n        \"description\": \"Explicit audited content moderation only\"\n      }\n    ]\n  },\n  \"clientScopes\": [\n    {\n      \"name\": \"network-audience\",\n      \"protocol\": \"openid-connect\",\n      \"protocolMappers\": [\n        {\n          \"name\": \"audience\",\n          \"protocol\": \"openid-connect\",\n          \"protocolMapper\": \"oidc-audience-mapper\",\n          \"config\": {\n            \"included.custom.audience\": \"network-api\",\n            \"access.token.claim\": \"true\"\n          }\n        },\n        {\n          \"name\": \"subject\",\n          \"protocol\": \"openid-connect\",\n          \"protocolMapper\": \"oidc-sub-mapper\",\n          \"config\": {\n            \"access.token.claim\": \"true\",\n            \"id.token.claim\": \"true\",\n            \"introspection.token.claim\": \"true\"\n          }\n        },\n        {\n          \"name\": \"trusted-realm-roles\",\n          \"protocol\": \"openid-connect\",\n          \"protocolMapper\": \"oidc-usermodel-realm-role-mapper\",\n          \"config\": {\n            \"claim.name\": \"realm_access.roles\",\n            \"jsonType.label\": \"String\",\n            \"multivalued\": \"true\",\n            \"access.token.claim\": \"true\"\n          }\n        }\n      ]\n    },\n    {\n      \"name\": \"connections.read\",\n      \"protocol\": \"openid-connect\",\n      \"attributes\": {\n        \"include.in.token.scope\": \"true\"\n      }\n    },\n    {\n      \"name\": \"metrics.read\",\n      \"protocol\": \"openid-connect\",\n      \"attributes\": {\n        \"include.in.token.scope\": \"true\"\n      }\n    },\n    {\n      \"name\": \"media.manage\",\n      \"protocol\": \"openid-connect\",\n      \"attributes\": {\n        \"include.in.token.scope\": \"true\"\n      }\n    },\n    {\n      \"name\": \"hiring.profiles\",\n      \"protocol\": \"openid-connect\",\n      \"attributes\": {\n        \"include.in.token.scope\": \"true\"\n      }\n    },\n    {\n      \"name\": \"hiring.recipients\",\n      \"protocol\": \"openid-connect\",\n      \"attributes\": {\n        \"include.in.token.scope\": \"true\"\n      }\n    }\n  ],\n  \"clients\": [\n    {\n      \"clientId\": \"network-web\",\n      \"publicClient\": true,\n      \"standardFlowEnabled\": true,\n      \"directAccessGrantsEnabled\": false,\n      \"redirectUris\": [\n        \"http://localhost:3000/callback\",\n        \"http://localhost:8765/callback\"\n      ],\n      \"webOrigins\": [\n        \"http://localhost:3000\"\n      ],\n      \"attributes\": {\n        \"pkce.code.challenge.method\": \"S256\"\n      },\n      \"defaultClientScopes\": [\n        \"network-audience\"\n      ]\n    },\n    {\n      \"clientId\": \"content-internal\",\n      \"publicClient\": false,\n      \"secret\": \"${CONTENT_CLIENT_SECRET}\",\n      \"serviceAccountsEnabled\": true,\n      \"standardFlowEnabled\": false,\n      \"directAccessGrantsEnabled\": false,\n      \"defaultClientScopes\": [\n        \"network-audience\",\n        \"connections.read\"\n      ]\n    },\n    {\n      \"clientId\": \"metrics\",\n      \"publicClient\": false,\n      \"secret\": \"${METRICS_CLIENT_SECRET}\",\n      \"serviceAccountsEnabled\": true,\n      \"standardFlowEnabled\": false,\n      \"directAccessGrantsEnabled\": false,\n      \"defaultClientScopes\": [\n        \"network-audience\",\n        \"metrics.read\"\n      ]\n    },\n    {\n      \"clientId\": \"media-internal\",\n      \"publicClient\": false,\n      \"secret\": \"${MEDIA_CLIENT_SECRET}\",\n      \"serviceAccountsEnabled\": true,\n      \"standardFlowEnabled\": false,\n      \"directAccessGrantsEnabled\": false,\n      \"defaultClientScopes\": [\n        \"network-audience\",\n        \"connections.read\",\n        \"media.manage\"\n      ]\n    },\n    {\n      \"clientId\": \"messaging-internal\",\n      \"publicClient\": false,\n      \"secret\": \"${MESSAGING_CLIENT_SECRET}\",\n      \"serviceAccountsEnabled\": true,\n      \"standardFlowEnabled\": false,\n      \"directAccessGrantsEnabled\": false,\n      \"defaultClientScopes\": [\n        \"network-audience\",\n        \"connections.read\"\n      ]\n    },\n    {\n      \"clientId\": \"hiring-internal\",\n      \"publicClient\": false,\n      \"secret\": \"${HIRING_CLIENT_SECRET}\",\n      \"serviceAccountsEnabled\": true,\n      \"standardFlowEnabled\": false,\n      \"directAccessGrantsEnabled\": false,\n      \"defaultClientScopes\": [\n        \"network-audience\",\n        \"hiring.profiles\"\n      ]\n    },\n    {\n      \"clientId\": \"notification-internal\",\n      \"publicClient\": false,\n      \"secret\": \"${NOTIFICATION_CLIENT_SECRET}\",\n      \"serviceAccountsEnabled\": true,\n      \"standardFlowEnabled\": false,\n      \"directAccessGrantsEnabled\": false,\n      \"defaultClientScopes\": [\n        \"network-audience\",\n        \"hiring.recipients\"\n      ]\n    }\n  ]\n}\n"
       }
     },
     {
@@ -108,7 +109,7 @@
               "app": "oracle"
             },
             "annotations": {
-              "network/config-sha256": "bb49842e249972382245d6a2e76b6b9758f96f30f10ea7167ed394ae01dffb7e"
+              "network/config-sha256": "59f890777b813ff6ce0bbc8833274d8c22e45d43314216f99f2206f4c8e393c8"
             }
           },
           "spec": {
@@ -224,6 +225,24 @@
                       "secretKeyRef": {
                         "name": "network-secrets",
                         "key": "MESSAGING_RUNTIME_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "HIRING_DB_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "HIRING_DB_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "HIRING_RUNTIME_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "HIRING_RUNTIME_PASSWORD"
                       }
                     }
                   }
@@ -437,7 +456,7 @@
               "app": "kafka"
             },
             "annotations": {
-              "network/config-sha256": "5fab44d00ab07930f785c3ba82b329c70031356108c583906426902093ebee3a"
+              "network/config-sha256": "fd5312f60822617723ffde944ed5e113e970345ab9c6e6d961d7749a7fd6f910"
             }
           },
           "spec": {
@@ -579,6 +598,15 @@
                       "secretKeyRef": {
                         "name": "network-secrets",
                         "key": "KAFKA_MESSAGING_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "KAFKA_HIRING_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "KAFKA_HIRING_PASSWORD"
                       }
                     }
                   }
@@ -759,7 +787,7 @@
               "app": "keycloak"
             },
             "annotations": {
-              "network/config-sha256": "810454ca858b3e68fa700f674775553a75cbe90f02c751127159cde228640808"
+              "network/config-sha256": "8f7160c890b825b91b6ff308a4cca65d5e74e3c48ddd7fb107bcb98bbde1fb1d"
             }
           },
           "spec": {
@@ -833,6 +861,24 @@
                       "secretKeyRef": {
                         "name": "network-secrets",
                         "key": "MESSAGING_CLIENT_SECRET"
+                      }
+                    }
+                  },
+                  {
+                    "name": "HIRING_CLIENT_SECRET",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "HIRING_CLIENT_SECRET"
+                      }
+                    }
+                  },
+                  {
+                    "name": "NOTIFICATION_CLIENT_SECRET",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "NOTIFICATION_CLIENT_SECRET"
                       }
                     }
                   }
@@ -931,9 +977,9 @@
         "namespace": "network-mvp"
       },
       "data": {
-        "init.sh": "#!/bin/bash\nset -euo pipefail\nsource /opt/network/client-properties.sh\nserver=${KAFKA_BOOTSTRAP:-kafka:19092}\nfor topic in network.events.v1 network.events.v1.DLT; do\n /opt/kafka/bin/kafka-topics.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --create --if-not-exists --topic \"$topic\" --partitions 3 --replication-factor 1\n done\nfor user in member content messaging; do\n /opt/kafka/bin/kafka-acls.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --add --allow-principal \"User:$user\" --operation Write --operation Describe --topic network.events.v1\n done\n/opt/kafka/bin/kafka-acls.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --add --allow-principal User:notification --operation Read --operation Describe --topic network.events.v1\n/opt/kafka/bin/kafka-acls.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --add --allow-principal User:notification --operation Read --group notifications-v1\n/opt/kafka/bin/kafka-acls.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --add --allow-principal User:notification --operation Write --operation Describe --topic network.events.v1.DLT\nfor user in member content notification messaging; do\n /opt/kafka/bin/kafka-acls.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --add --allow-principal \"User:$user\" --operation IdempotentWrite --cluster\n done\n",
+        "init.sh": "#!/bin/bash\nset -euo pipefail\nsource /opt/network/client-properties.sh\nserver=${KAFKA_BOOTSTRAP:-kafka:19092}\nfor topic in network.events.v1 network.events.v1.DLT; do\n /opt/kafka/bin/kafka-topics.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --create --if-not-exists --topic \"$topic\" --partitions 3 --replication-factor 1\n done\nfor user in member content messaging hiring; do\n /opt/kafka/bin/kafka-acls.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --add --allow-principal \"User:$user\" --operation Write --operation Describe --topic network.events.v1\n done\n/opt/kafka/bin/kafka-acls.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --add --allow-principal User:notification --operation Read --operation Describe --topic network.events.v1\n/opt/kafka/bin/kafka-acls.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --add --allow-principal User:notification --operation Read --group notifications-v1\n/opt/kafka/bin/kafka-acls.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --add --allow-principal User:notification --operation Write --operation Describe --topic network.events.v1.DLT\nfor user in member content notification messaging hiring; do\n /opt/kafka/bin/kafka-acls.sh --bootstrap-server \"$server\" --command-config /tmp/admin.properties --add --allow-principal \"User:$user\" --operation IdempotentWrite --cluster\n done\n",
         "client-properties.sh": "#!/bin/bash\nset -euo pipefail\numask 077\nprintf 'security.protocol=SASL_PLAINTEXT\\nsasl.mechanism=PLAIN\\nsasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"%s\";\\n' \"$KAFKA_ADMIN_PASSWORD\" > /tmp/admin.properties\n",
-        "start.sh": "#!/bin/bash\nset -euo pipefail\nsource /opt/network/client-properties.sh\njaas=\"org.apache.kafka.common.security.plain.PlainLoginModule required username=\\\"admin\\\" password=\\\"${KAFKA_ADMIN_PASSWORD}\\\" user_admin=\\\"${KAFKA_ADMIN_PASSWORD}\\\" user_member=\\\"${KAFKA_MEMBER_PASSWORD}\\\" user_content=\\\"${KAFKA_CONTENT_PASSWORD}\\\" user_notification=\\\"${KAFKA_NOTIFICATION_PASSWORD}\\\" user_messaging=\\\"${KAFKA_MESSAGING_PASSWORD}\\\";\"\nexport KAFKA_LISTENER_NAME_INTERNAL_PLAIN_SASL_JAAS_CONFIG=\"$jaas\"\nexport KAFKA_LISTENER_NAME_EXTERNAL_PLAIN_SASL_JAAS_CONFIG=\"$jaas\"\nexport KAFKA_LISTENER_NAME_CONTROLLER_PLAIN_SASL_JAAS_CONFIG=\"$jaas\"\nexec /etc/kafka/docker/run\n"
+        "start.sh": "#!/bin/bash\nset -euo pipefail\nsource /opt/network/client-properties.sh\njaas=\"org.apache.kafka.common.security.plain.PlainLoginModule required username=\\\"admin\\\" password=\\\"${KAFKA_ADMIN_PASSWORD}\\\" user_admin=\\\"${KAFKA_ADMIN_PASSWORD}\\\" user_member=\\\"${KAFKA_MEMBER_PASSWORD}\\\" user_content=\\\"${KAFKA_CONTENT_PASSWORD}\\\" user_notification=\\\"${KAFKA_NOTIFICATION_PASSWORD}\\\" user_messaging=\\\"${KAFKA_MESSAGING_PASSWORD}\\\" user_hiring=\\\"${KAFKA_HIRING_PASSWORD}\\\";\"\nexport KAFKA_LISTENER_NAME_INTERNAL_PLAIN_SASL_JAAS_CONFIG=\"$jaas\"\nexport KAFKA_LISTENER_NAME_EXTERNAL_PLAIN_SASL_JAAS_CONFIG=\"$jaas\"\nexport KAFKA_LISTENER_NAME_CONTROLLER_PLAIN_SASL_JAAS_CONFIG=\"$jaas\"\nexec /etc/kafka/docker/run\n"
       }
     },
     {

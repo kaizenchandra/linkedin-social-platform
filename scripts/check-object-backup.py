@@ -28,7 +28,7 @@ try:
   request('PUT','/'+bucket+'/'+key,upload=file);restored.append(key)
   copy=directory/(file.name+'.restored');request('GET','/'+bucket+'/'+key,output=copy)
   assert hashlib.sha256(file.read_bytes()).digest()==hashlib.sha256(copy.read_bytes()).digest();copy.unlink()
- Path('docs/mvp2-object-backup-evidence.json').write_text(json.dumps({'objectsCompared':len(keys),'method':'Private S3 export and SHA-256 comparison after restore to an isolated bucket','originalObjectsPreserved':True,'temporaryBucketRemoved':True},indent=2)+'\n')
+ Path(os.environ.get('BACKUP_EVIDENCE','docs/mvp2-object-backup-evidence.json')).write_text(json.dumps({'objectsCompared':len(keys),'method':'Private S3 export and SHA-256 comparison after restore to an isolated bucket','originalObjectsPreserved':True,'temporaryBucketRemoved':True},indent=2)+'\n')
  print('PASS: private object export/isolated restore, SHA-256 equality for '+str(len(keys))+' objects')
 finally:
  if created:

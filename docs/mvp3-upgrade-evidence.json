@@ -1,0 +1,23 @@
+{
+  "baselineTargets": {
+    "member": "6",
+    "content": "7",
+    "notification": "3",
+    "media": "1",
+    "messaging": "2"
+  },
+  "preserved": [
+    "profiles",
+    "connection-only post",
+    "comment",
+    "like",
+    "notification",
+    "dedup record",
+    "attached media metadata",
+    "message text",
+    "monotonic read positions"
+  ],
+  "newHiringSchema": 7,
+  "notificationFanoutVerified": true,
+  "isolatedSchemasRemoved": true
+}

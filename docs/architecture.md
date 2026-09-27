@@ -9,6 +9,12 @@ flowchart LR
  Gateway --> Notification
  Gateway --> Media
  Gateway --> Messaging
+ Gateway --> Hiring
+ Media -->|company logo protocol| Hiring
+ Hiring -->|scoped profile snapshot| Member
+ Notification -->|scoped current company recipients| Hiring
+ Hiring --> H[(Hiring Oracle schema)]
+ H -->|outbox relay| Kafka
  Media -->|prepare, commit, resolve, authorize| Member
  Media -->|prepare, commit, resolve, authorize| Content
  Messaging -->|current pair policy| Member
@@ -25,7 +31,7 @@ flowchart LR
  Kafka --> Notification
 ```
 
-The Oracle instance and Kafka broker are shared local infrastructure, not high availability. Six independently packaged applications. `platform-web` holds servlet security/error/pagination mechanics, scoped HTTP client and migration utilities, never persistence entities or business repositories. Gateway uses WebFlux; business services use MVC/JPA.
+The Oracle instance and Kafka broker are shared local infrastructure, not high availability. Seven independently packaged applications. `platform-web` holds servlet security/error/pagination mechanics, scoped HTTP client and migration utilities, never persistence entities or business repositories. Gateway uses WebFlux; business services use MVC/JPA.
 
 ```mermaid
 erDiagram
@@ -80,3 +86,31 @@ sequenceDiagram
  Messaging-->>Client: stable message result
  Messaging->>Kafka: relay generic message event after commit
 ```
+
+## MVP-3 hiring extension
+
+Hiring owns one Oracle schema for the company/job/application transactional boundary. Organization membership is current database state, independent of personal blocking. See ADR011 and the hiring authorization matrix for privacy and lock ordering.
+
+```mermaid
+flowchart LR
+ Gateway --> Hiring
+ Hiring -->|scoped professional snapshot| Member
+ Media -->|company attachment and download authorization| Hiring
+ Hiring --> H[(Hiring schema: companies, memberships, jobs, applications, audits, outbox)]
+ H -->|outbox relay| Kafka
+ Kafka --> Notification
+ Notification -->|scoped current recipients| Hiring
+```
+
+```mermaid
+erDiagram
+ COMPANY ||--|{ COMPANY_MEMBER : authorizes
+ COMPANY ||--o{ INVITATION : issues
+ COMPANY ||--o{ JOB : owns
+ JOB ||--o{ APPLICATION : receives
+ APPLICATION ||--|{ APPLICATION_HISTORY : records
+ JOB ||--o{ JOB_REPORT : receives
+ COMPANY ||--o{ HIRING_AUDIT : records
+```
+
+An owner_id pointer references exactly one accepted company member; transfer changes that pointer atomically and leaves the previous owner as recruiter. Application snapshots preserve the fetched member version and locked job version. Reports and hidden state do not change job lifecycle.

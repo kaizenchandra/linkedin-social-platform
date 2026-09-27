@@ -15,5 +15,6 @@ scrape_configs:
     - notification-service:9090
     - media-service:9090
     - messaging-service:9090
+    - hiring-service:9090
 rule_files:
 - /etc/prometheus/alerts.yml

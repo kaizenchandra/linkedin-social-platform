@@ -65,13 +65,13 @@ public class ProfileController {
   public View save(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody Input in) {
     var member =
         members
-            .lock(jwt.getSubject())
+            .lockForProfileWrite(jwt.getSubject())
             .orElseGet(() -> new Member(jwt.getSubject(), in.displayName(), clock.instant()));
     member.displayName = in.displayName().strip();
     member.headline = in.headline();
     member.summary = in.summary();
     member.location = in.location();
-    members.saveAndFlush(member);
+    member = members.saveAndFlush(member);
     experiences.deleteByMemberId(member.id);
     experiences.flush();
     int pos = 0;

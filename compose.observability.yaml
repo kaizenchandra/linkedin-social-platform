@@ -44,6 +44,10 @@ services:
     volumes:
     - ./.local/tools/opentelemetry-javaagent.jar:/otel/agent.jar:ro
   zipkin:
+    environment:
+      MEM_MAX_SPANS: "10000"
+      JAVA_OPTS: -Xms128m -Xmx256m
+    restart: unless-stopped
     image: openzipkin/zipkin:3.5.1@sha256:bb570eb45c2994eaf32da783cc098b3d51d1095b73ec92919863d73d0a9eaafb
     ports:
     - 127.0.0.1:9411:9411
@@ -83,6 +87,17 @@ services:
     environment:
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65 -javaagent:/otel/agent.jar
       OTEL_SERVICE_NAME: messaging-service
+      OTEL_TRACES_EXPORTER: zipkin
+      OTEL_EXPORTER_ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
+      OTEL_METRICS_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+      OTEL_TRACES_SAMPLER: always_on
+    volumes:
+    - ./.local/tools/opentelemetry-javaagent.jar:/otel/agent.jar:ro
+  hiring-service:
+    environment:
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65 -javaagent:/otel/agent.jar
+      OTEL_SERVICE_NAME: hiring-service
       OTEL_TRACES_EXPORTER: zipkin
       OTEL_EXPORTER_ZIPKIN_ENDPOINT: http://zipkin:9411/api/v2/spans
       OTEL_METRICS_EXPORTER: none

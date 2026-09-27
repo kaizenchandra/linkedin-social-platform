@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import json,os
 from pathlib import Path
-s=json.loads(Path('.local/session.json').read_text());env={'baseUrl':'http://localhost:8080'}
+s=json.loads(Path(os.environ.get('TEST_SESSION','.local/session.json')).read_text());env={'baseUrl':'http://localhost:8080'}
 for u in s['users']:
  env[u['name']+'Token']=u['access_token'];env[u['name']+'Id']=u['id']
 if 'moderator' in s:env['moderatorToken']=s['moderator']['access_token']

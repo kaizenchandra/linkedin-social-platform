@@ -168,3 +168,45 @@ For kind, stop Compose including its optional observability services, then run `
 Prometheus now scrapes six scoped targets and loads reliability alert rules; Grafana includes media storage/reconciliation/cleanup panels. Alerts are local rules only; no external notification receiver is configured. The optional agent remains the sole tracing path. See `docs/mvp2-verification.md` for executed evidence rather than inferring status from these commands.
 
 MVP-2 retention: messages, read positions, moderation reports/audits, owner attachment operation records, notifications and consumer deduplication records have no automatic expiry in this release. Author-deleted posts/comments remain tombstoned, with normal reads denied; message deletion/account erasure are outside scope. Unreferenced objects are eligible after the configured grace measured from their last media-state update; a removed reference denies download immediately, but physical deletion waits for an eligible successful reconciliation. This is not a guaranteed delay measured from detachment, and outages extend retention. Backups have operator-managed retention. Define lawful retention, deletion workflows and backup expiry before production use; do not promise complete erasure.
+
+## MVP-3 upgrade and hiring operations
+
+Release0.3.0 adds hiring-service (loopback8086), a sixth service-owned schema and new scoped identity/Kafka credentials. Keep `.env` and persisted volumes. For an existing MVP-2 installation:
+
+```sh
+python3 scripts/init-mvp3.py
+scripts/java21.sh -B -ntp clean verify
+docker compose stop api-gateway member-service content-service notification-service media-service messaging-service hiring-service
+docker compose up -d --wait oracle kafka keycloak object-store
+python3 scripts/upgrade-mvp3.py
+docker compose up -d --build --wait --wait-timeout 240
+python3 scripts/auth-hiring-setup.py
+python3 scripts/smoke-mvp3.py
+```
+
+Fresh setup uses `init-local.py`, which generates all release secrets, then the root verification and Compose startup commands. Never overwrite an existing `.env` to upgrade. A maintenance window prevents the old notification consumer rejecting new hiring event types. Company logo media also requires the new media binary. Additive Oracle migrations preserve old rows; application rollback does not undo schema or event-format evolution. Use a forward fix or coordinated pre-upgrade restore; restoring loses later writes. `check-mvp3-upgrade.py` verifies populated isolated MVP-2 schemas with release migration images and removes only its fixtures.
+
+Company pages are explicitly UNVERIFIED. Only the owner edits details/logos, invites/removes recruiters or transfers ownership to an accepted member. The old owner becomes a recruiter. Company memberships are checked from Oracle on each protected request, not token claims. Maximum100 accepted members/company and100 pending invitations; invitations expire after7 days. Company/job writes and authorized application operations use company locks, then resource locks. This intentionally favors clear concurrency semantics; measure contention before changing it.
+
+Applications require an initialized profile and applicant-scoped UUID idempotency key. Identical retries return the original application, including its frozen snapshots; changed input conflicts. The profile revision is fetched through `hiring.profiles`; missing dependency returns503. Job closure/hiding and submissions serialize: whichever obtains the company/job locks first determines whether submission commits or fails409. Published deadlines are checked synchronously. Personal blocking does not revoke company application-review access, but continues to govern personal APIs and messaging.
+
+Notification targets remain generic IDs/types. Clients open invitation/application targets through the corresponding authorized API and show unavailable on404; do not cache cover notes or previews. Submission events resolve current company recipients using `hiring.recipients` during consumption. Removed recruiters are excluded at lookup; later removal revokes target access even if a generic notification exists. New company members may receive an older queued event. Failed lookup retries with the existing bounded consumer backoff, then DLT. To replay: inspect the envelope without personal content, repair the dependency/schema problem, publish the original eventId and aggregate key to `network.events.v1`; never mint a new ID for a retry. `check-mvp3-recovery.py` exercises this with a real lookup outage, same-ID replay, broker outage and competing relays.
+
+```sh
+TEST_SESSION=.local/hiring-session.json python3 scripts/refresh-session.py
+python3 scripts/check-mvp3-recovery.py       # dedicated Compose only; restores stopped services
+python3 scripts/check-mvp3-restart.py        # or kind
+python3 scripts/check-mvp3-upgrade.py
+python3 scripts/load-mvp3.py --jobs 60 --seconds 20 --concurrency 4
+TEST_SESSION=.local/hiring-session.json python3 scripts/http-env.py
+```
+
+Choose `local` in IntelliJ and use `requests/hiring.http`. Each required actor needs a profile; `smoke-mvp3.py` initializes all test profiles. Test identities use the supported Keycloak admin setup; interactive users continue to use Authorization Code+PKCE. Platform moderator roles are administrator-assigned and separate from company roles. Job inspection/moderation is explicitly audited and grants no private-message access.
+
+For backup verification stop all seven application services while Oracle/object storage remain running, then run `check-mvp3-backup.py` and `BACKUP_EVIDENCE=docs/mvp3-object-backup-evidence.json python3 scripts/check-object-backup.py`. Data Pump restores six schemas into isolated fixtures and compares table counts, application snapshots/statuses, personal content and message read positions. Keep Oracle/object/Keycloak backup policies coordinated. The versioned [hiring retention policy](hiring-retention-policy.json) is operator-managed; no automated purge is implied. Withdrawal immediately redacts recruiter-facing cover/profile responses; stored history, applicant access, previously viewed data and backups remain.
+
+For kind, stop Compose and optional observability first to release8080/8180, then run `scripts/deploy-kind.sh`. It loads seven0.3.0 images, preserves existing PVCs, provisions missing schemas/scopes, completes uniquely named MVP-3 migration/ACL jobs, and rolls out applications using `.local/kubeconfig`. Run `auth-hiring-setup.py`, `smoke-mvp3.py` and `check-mvp3-restart.py kind`. Do not delete a retained cluster to upgrade it. The optional Compose monitoring profile scrapes seven authenticated targets, includes hiring latency/5xx panels and alerts, and traces HTTP plus outbox/Kafka. It is separate from the basic kind deployment.
+
+Six business pools ×8 =48 connections per single-replica stack; budget additional replicas, rolling overlap, relay transactions, migration and admin connections. Current local deployment is single-node, with no HA, employer-verification, legal-compliance or production-capacity claim. See mvp3-verification.md for actual executed deployment and recovery evidence.
+
+The local Zipkin memory profile retains at most10000 spans with a256MiB heap in a512MiB container. Older traces are evicted and a backend restart loses them; this is intentional bounded development storage. The default image heap exhausted during MVP-3 load testing before this configuration was added. Keep trace sampling/storage policy explicit when measuring or deploying elsewhere.

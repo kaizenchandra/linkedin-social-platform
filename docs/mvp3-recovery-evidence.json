@@ -1,0 +1,8 @@
+{
+  "profileOutage": "503, no application",
+  "brokerOutageCommitSeconds": 0.255,
+  "replay": "duplicate has no extra effect; same-partition barrier consumed",
+  "currentRecipients": "removed recruiter excluded when queued event consumed",
+  "recipientOutage": "DLT after bounded retries; same-eventId replay resolves current owner only",
+  "twoRelays": "8 committed applications delivered once per current recipient"
+}

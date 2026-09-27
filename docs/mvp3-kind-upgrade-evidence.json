@@ -1,0 +1,12 @@
+{
+  "retainedCluster": "professional-network-mvp",
+  "unchangedBusinessData": [
+    "profiles",
+    "posts",
+    "messages",
+    "readPositions",
+    "attachedMedia"
+  ],
+  "comparison": "Oracle XML row-content SHA-256 before/after upgrade",
+  "existingPVCsPreserved": true
+}

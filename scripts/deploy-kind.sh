@@ -37,21 +37,22 @@ for image in sorted(images):
 PYTHON
 docker image save --platform "$platform" -o .local/kind-images.tar \
   gvenzl/oracle-free:23.9-slim-faststart apache/kafka:4.1.2 quay.io/keycloak/keycloak:26.7.4 chrislusf/seaweedfs:4.47 \
-  professional-network/api-gateway:0.2.0 professional-network/member-service:0.2.0 \
-  professional-network/content-service:0.2.0 professional-network/notification-service:0.2.0 \
-  professional-network/media-service:0.2.0 professional-network/messaging-service:0.2.0
+  professional-network/api-gateway:0.3.0 professional-network/member-service:0.3.0 \
+  professional-network/content-service:0.3.0 professional-network/notification-service:0.3.0 \
+  professional-network/media-service:0.3.0 professional-network/messaging-service:0.3.0 professional-network/hiring-service:0.3.0
 "$kind_bin" load image-archive .local/kind-images.tar --name professional-network-mvp
 scripts/kubectl-local.sh create namespace network-mvp --dry-run=client -o yaml | scripts/kubectl-local.sh apply -f -
 scripts/kubectl-local.sh -n network-mvp create secret generic network-secrets --from-env-file=.env --dry-run=client -o yaml | scripts/kubectl-local.sh apply -f -
 scripts/kubectl-local.sh -n network-mvp create secret generic object-store-credentials --from-file=s3-identities.json=.local/s3-identities.json --dry-run=client -o yaml | scripts/kubectl-local.sh apply -f -
 # A maintenance window prevents old binaries bypassing new privacy columns during upgrades.
-for svc in member-service content-service notification-service media-service messaging-service api-gateway; do
+for svc in member-service content-service notification-service media-service messaging-service hiring-service api-gateway; do
   if scripts/kubectl-local.sh -n network-mvp get deployment/$svc >/dev/null 2>&1; then scripts/kubectl-local.sh -n network-mvp scale deployment/$svc --replicas=0; fi
 done
 scripts/kubectl-local.sh apply -f infra/k8s/infrastructure.json
 for svc in oracle kafka keycloak object-store; do scripts/kubectl-local.sh -n network-mvp rollout status deployment/$svc --timeout=300s; done
 python3 scripts/upgrade-mvp2.py kind
+python3 scripts/upgrade-mvp3.py kind
 scripts/kubectl-local.sh apply -f infra/k8s/migrations.json
 scripts/kubectl-local.sh -n network-mvp wait --for=condition=complete job --all --timeout=300s
 scripts/kubectl-local.sh apply -f infra/k8s/applications.json
-for svc in member-service content-service notification-service media-service messaging-service api-gateway; do scripts/kubectl-local.sh -n network-mvp rollout status deployment/$svc --timeout=180s; done
+for svc in member-service content-service notification-service media-service messaging-service hiring-service api-gateway; do scripts/kubectl-local.sh -n network-mvp rollout status deployment/$svc --timeout=180s; done

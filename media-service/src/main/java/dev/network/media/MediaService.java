@@ -20,7 +20,7 @@ public class MediaService {
   private final TransactionTemplate tx;
   private final ServiceHttp http;
   private final Clock clock;
-  private final String memberUrl, contentUrl;
+  private final String memberUrl, contentUrl, hiringUrl;
   private final MeterRegistry metrics;
   private final Semaphore uploads = new Semaphore(1);
 
@@ -33,6 +33,7 @@ public class MediaService {
       Clock clock,
       @Value("${MEMBER_URL:http://localhost:8081}") String memberUrl,
       @Value("${CONTENT_URL:http://localhost:8082}") String contentUrl,
+      @Value("${HIRING_URL:http://localhost:8086}") String hiringUrl,
       MeterRegistry metrics) {
     this.repo = repo;
     this.store = store;
@@ -42,6 +43,7 @@ public class MediaService {
     this.clock = clock;
     this.memberUrl = memberUrl;
     this.contentUrl = contentUrl;
+    this.hiringUrl = hiringUrl;
     this.metrics = metrics;
   }
 
@@ -51,7 +53,7 @@ public class MediaService {
   public record Attachment(
       @jakarta.validation.constraints.NotBlank String operationId,
       @jakarta.validation.constraints.NotNull
-          @jakarta.validation.constraints.Pattern(regexp = "PROFILE|POST")
+          @jakarta.validation.constraints.Pattern(regexp = "PROFILE|POST|COMPANY")
           String resourceType,
       @jakarta.validation.constraints.NotBlank String resourceId,
       @jakarta.validation.constraints.NotNull @jakarta.validation.constraints.Size(max = 4)
@@ -71,6 +73,7 @@ public class MediaService {
     return switch (type) {
       case "PROFILE" -> memberUrl;
       case "POST" -> contentUrl;
+      case "COMPANY" -> hiringUrl;
       default -> throw new IllegalArgumentException("Invalid resource type");
     };
   }
@@ -135,7 +138,7 @@ public class MediaService {
     UUID.fromString(a.operationId());
     UUID.fromString(a.resourceId());
     if (a.mediaIds() == null
-        || a.mediaIds().size() > (a.resourceType().equals("PROFILE") ? 1 : 4)
+        || a.mediaIds().size() > (a.resourceType().equals("POST") ? 4 : 1)
         || new HashSet<>(a.mediaIds()).size() != a.mediaIds().size())
       throw new IllegalArgumentException("Invalid media list");
     a.mediaIds().forEach(UUID::fromString);

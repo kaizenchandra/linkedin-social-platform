@@ -149,3 +149,7 @@ build-iPhoneSimulator/
 .local/
 .env.*.local
 **/http-client.private.env.json
+
+# Python development tooling
+__pycache__/
+*.pyc

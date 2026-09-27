@@ -48,7 +48,7 @@ Sources checked:
 - [Keycloak downloads](https://www.keycloak.org/downloads)
 - [Kafka downloads](https://kafka.apache.org/community/downloads/)
 
-Image tags are verified by registry manifests and pinned to digests in the final deployment lock. Host resources: macOS ARM64; local Docker 11 CPUs, 9 GB. Run Compose and kind serially to avoid exhausting this budget. Each application pool is bounded to 8 connections; five business services must fit Oracle limits (five services × replicas × 8, plus migration/admin connections).
+Image tags are verified by registry manifests and pinned to digests in the final deployment lock. Host resources: macOS ARM64; local Docker 11 CPUs, 9 GB. Run Compose and kind serially to avoid exhausting this budget. Each application pool is bounded to 8 connections; six business services must fit Oracle limits (six services × replicas × 8, plus migration/admin connections).
 
 Security override: Tomcat11.0.26, verified against Apache advisories and Maven Central; see ADR007. All Maven plugin versions come from pinned Boot parent. Kind node digest comes from its0.33.0 official release notes. The Java21 runtime image is pinned by digest. Python contract tooling uses `scripts/requirements.lock`; Google Java Format1.28.0 is development-only.
 
@@ -60,3 +60,11 @@ Security override: Tomcat11.0.26, verified against Apache advisories and Maven C
 - Spring Batch remains deferred: a small bounded durable media worker processes25 records per sweep with row locks and owner-operation fencing. Adopt Batch only for large restartable bulk jobs needing partition/checkpoint tooling. No change to other deferred technologies or the OTel instrumentation approach.
 
 MVP-2 storage permissions: separate admin/application credentials, bucket-scoped Read/Write/List from the [tagged SeaweedFS policy documentation](https://github.com/seaweedfs/seaweedfs/blob/4.47/weed/s3api/policy_engine/README_POLICY_ENGINE.md). Real tests deny application bucket creation and reads outside network-media. Fixed-size S3 uploads explicitly request SHA-256 checksums; streaming-chunk signing caused a live compatibility failure and is not used. [AWS S3 client configuration](https://docs.aws.amazon.com/java/api/latest/software/amazon/awssdk/services/s3/S3Configuration.html). Download checksum validation remains enabled.
+
+## MVP-3 additions — 2026-09-27
+
+One MVC/JPA hiring-service reuses the pinned Boot4.0.8/Cloud2025.1.3/Java21, Oracle JDBC/Flyway, Kafka and security dependencies already verified above. No new library, runtime or infrastructure image is introduced. The baseline32-test build and company35-test build establish compatibility with the resolved existing BOM. Application artifact version0.3.0 is a release version change, not a framework upgrade.
+
+Oracle structured indexes plus parameterized, wildcard-escaped substring search are the initial job-search design. This is not indexed full-text search; measure before adopting Oracle Text or a search cluster. A future search ADR must cover availability, indexing freshness, moderation/deletion and authorization. Deadline/expiry enforcement occurs at request time. Spring Batch remains deferred: no approved automatic retention/purge workflow currently justifies it; adopt only for a concrete restartable maintenance job. All previously deferred technologies remain deferred.
+
+MVP-3 operational finding2026-09-27: no dependency changes. Zipkin3.5.1 in-memory storage is capped at10000 spans and an explicit256MiB heap after an observed default-heap OOM under load. `MEM_MAX_SPANS` is verified in the [tagged server configuration](https://github.com/openzipkin/zipkin/blob/3.5.1/zipkin-server/src/main/resources/zipkin-server-shared.yml); trace eviction/restart loss are documented development limitations. Durable trace storage is deferred until retention/volume requirements justify it.

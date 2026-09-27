@@ -1,0 +1,13 @@
+{
+  "cluster": "professional-network-mvp",
+  "retainedMvp2Upgrade": true,
+  "serverSideManifestValidation": true,
+  "gatewayJourneys": [
+    "MVP-1",
+    "MVP-2",
+    "MVP-3"
+  ],
+  "hiringKafkaReplayDeduplicated": true,
+  "rollingRestarts": "all seven services, retained hiring and networking state",
+  "sharedOrPaidDeployment": false
+}

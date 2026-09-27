@@ -31,8 +31,19 @@ public class GatewayConfiguration {
       @Value("${CONTENT_URL:http://localhost:8082}") String c,
       @Value("${NOTIFICATION_URL:http://localhost:8083}") String n,
       @Value("${MEDIA_URL:http://localhost:8084}") String media,
-      @Value("${MESSAGING_URL:http://localhost:8085}") String messaging) {
+      @Value("${MESSAGING_URL:http://localhost:8085}") String messaging,
+      @Value("${HIRING_URL:http://localhost:8086}") String hiring) {
     return b.routes()
+        .route(
+            "hiring",
+            r ->
+                r.path(
+                        "/api/v1/companies/**",
+                        "/api/v1/company-invitations/**",
+                        "/api/v1/jobs/**",
+                        "/api/v1/applications/**",
+                        "/api/v1/hiring/**")
+                    .uri(hiring))
         .route("messaging", r -> r.path("/api/v1/conversations/**").uri(messaging))
         .route(
             "media",

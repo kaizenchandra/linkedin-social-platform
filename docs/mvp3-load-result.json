@@ -1,0 +1,67 @@
+{
+  "host": "macOS-27.0-arm64-arm-64bit-Mach-O",
+  "architecture": "arm64",
+  "dockerResources": "11 CPUs / 9435414528 bytes",
+  "dataset": {
+    "fixtureCompanies": 1,
+    "publishedJobs": 60,
+    "applicants": 1,
+    "profileExperiences": 1
+  },
+  "replicas": {
+    "gateway": 1,
+    "member": 1,
+    "content": 1,
+    "notification": 1,
+    "media": 1,
+    "messaging": 1,
+    "hiring": 1
+  },
+  "concurrency": 4,
+  "operations": {
+    "submission": {
+      "durationSeconds": 0.9463249999971595,
+      "requests": 60,
+      "requestsPerSecond": 63.403164874836975,
+      "errors": 0,
+      "p50Ms": 47.04358399976627,
+      "p95Ms": 204.337499999383,
+      "p99Ms": 212.630750000244
+    },
+    "search": {
+      "durationSeconds": 20.002328957998543,
+      "requests": 19356,
+      "requestsPerSecond": 967.6873148444002,
+      "errors": 0,
+      "p50Ms": 3.6661249978351407,
+      "p95Ms": 7.394708001811523,
+      "p99Ms": 11.080874999606749
+    },
+    "recruiterListing": {
+      "durationSeconds": 20.0035075420019,
+      "requests": 16657,
+      "requestsPerSecond": 832.7039627937677,
+      "errors": 0,
+      "p50Ms": 4.325499998230953,
+      "p95Ms": 7.889792002970353,
+      "p99Ms": 10.961750002024928
+    }
+  },
+  "resourceSnapshot": [
+    "professional-network-mvp-zipkin-1 CPU=2.37% MEM=422.7MiB / 512MiB",
+    "professional-network-mvp-hiring-service-1 CPU=0.56% MEM=635.7MiB / 640MiB",
+    "professional-network-mvp-notification-service-1 CPU=0.70% MEM=575.3MiB / 640MiB",
+    "professional-network-mvp-member-service-1 CPU=1.12% MEM=554MiB / 640MiB",
+    "professional-network-mvp-api-gateway-1 CPU=0.13% MEM=381.1MiB / 640MiB",
+    "professional-network-mvp-media-service-1 CPU=0.23% MEM=374.2MiB / 640MiB",
+    "professional-network-mvp-content-service-1 CPU=0.49% MEM=496.8MiB / 640MiB",
+    "professional-network-mvp-messaging-service-1 CPU=0.51% MEM=460.2MiB / 640MiB",
+    "professional-network-mvp-kafka-1 CPU=2.84% MEM=202MiB / 8.787GiB",
+    "professional-network-mvp-keycloak-1 CPU=0.68% MEM=437.5MiB / 8.787GiB",
+    "professional-network-mvp-oracle-1 CPU=4.63% MEM=764.9MiB / 8.787GiB",
+    "professional-network-mvp-prometheus-1 CPU=0.28% MEM=89.61MiB / 8.787GiB",
+    "professional-network-mvp-grafana-1 CPU=0.90% MEM=494MiB / 8.787GiB",
+    "professional-network-mvp-object-store-1 CPU=1.41% MEM=79.1MiB / 512MiB"
+  ],
+  "limitations": "Small isolated company on shared local infrastructure, tracing enabled; other regression fixtures remain. Submission is a fixed-size burst; reads are duration-based. No saturation, production capacity or full-text index claim. Company locks serialize writes and authorized recruiter queries."
+}

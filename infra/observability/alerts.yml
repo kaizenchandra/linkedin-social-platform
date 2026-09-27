@@ -21,3 +21,8 @@ groups:
         for: 2m
         labels: {severity: warning}
         annotations: {summary: "Notification processing is failing; inspect DLT and consumer health"}
+      - alert: HiringDependencyOrServerErrors
+        expr: sum(rate(http_server_requests_seconds_count{application="hiring-service",status=~"5.."}[5m])) > 0.1
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "Hiring requests are failing; inspect profile dependency and database health"}

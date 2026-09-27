@@ -1,4 +1,4 @@
-name: Verify MVP-2
+name: Verify MVP-3
 on:
   push:
   pull_request:
@@ -7,7 +7,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 50
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
@@ -50,11 +50,21 @@ jobs:
           python scripts/refresh-session.py
           python scripts/check-mvp2-replay.py
           python scripts/check-mvp2-restart.py database
+      - name: Hiring journey, upgrade and recovery
+        run: |
+          python scripts/auth-hiring-setup.py
+          python scripts/smoke-mvp3.py
+          python scripts/check-mvp3-internal-security.py
+          python scripts/check-mvp3-recovery.py
+          TEST_SESSION=.local/hiring-session.json python scripts/refresh-session.py
+          python scripts/check-mvp3-restart.py
+          python scripts/check-mvp3-upgrade.py
       - name: Contracts and manifests
         run: |
           pip install -r scripts/requirements.lock
           python scripts/check-contracts.py
           python scripts/check-manifests.py
+          python scripts/check-hiring-contracts.py
       - name: Dependency and container vulnerability scan
         run: scripts/scan-images.sh
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -66,6 +76,7 @@ jobs:
             **/target/failsafe-reports/*.xml
             .local/scans/*.json
             docs/mvp2-*-evidence.json
+            docs/mvp3-*-evidence.json
       - name: Stop dedicated CI stack
         if: always()
         run: docker compose down

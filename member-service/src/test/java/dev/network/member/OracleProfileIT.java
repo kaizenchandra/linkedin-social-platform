@@ -148,4 +148,56 @@ class OracleProfileIT {
     assertThat(first.id()).isEqualTo(second.id());
     assertThat(profiles.get(jwt, id).experiences()).hasSize(1);
   }
+
+  @Autowired HiringProfileController snapshots;
+
+  @Test
+  void experienceOnlyUpdatesAdvanceCoherentSnapshotVersion() throws Exception {
+    String id = UUID.randomUUID().toString();
+    var first =
+        profiles.save(
+            jwt(id),
+            new ProfileController.Input(
+                "Snapshot member",
+                "Engineer",
+                "Summary",
+                "Local",
+                java.util.List.of(
+                    new ProfileController.ExperienceInput("Old", "Engineer", "2020-01", null))));
+    var barrier = new java.util.concurrent.CyclicBarrier(2);
+    try (var pool = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+      var write =
+          pool.submit(
+              () -> {
+                barrier.await();
+                return profiles.save(
+                    jwt(id),
+                    new ProfileController.Input(
+                        "Snapshot member",
+                        "Engineer",
+                        "Summary",
+                        "Local",
+                        java.util.List.of(
+                            new ProfileController.ExperienceInput(
+                                "New", "Engineer", "2020-01", null))));
+              });
+      var read =
+          pool.submit(
+              () -> {
+                barrier.await();
+                return snapshots.snapshot(new HiringProfileController.Request(id));
+              });
+      var updated = write.get();
+      var concurrent = read.get();
+      assertThat(updated.version()).isGreaterThan(first.version());
+      assertThat(concurrent.version())
+          .isEqualTo(
+              concurrent.experiences().getFirst().company().equals("Old")
+                  ? first.version()
+                  : updated.version());
+      var current = snapshots.snapshot(new HiringProfileController.Request(id));
+      assertThat(current.version()).isEqualTo(updated.version());
+      assertThat(current.experiences().getFirst().company()).isEqualTo("New");
+    }
+  }
 }

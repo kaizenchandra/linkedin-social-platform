@@ -1,0 +1,10 @@
+{
+  "dataset": "one isolated company, three jobs (two published, one closed)",
+  "requests": 30,
+  "concurrency": 1,
+  "durationSeconds": 0.45223016801537597,
+  "requestsPerSecond": 66.33790074566629,
+  "p95Ms": 24.39862500250456,
+  "host": "macOS-27.0-arm64-arm-64bit-Mach-O",
+  "purpose": "Small phase2 functional timing baseline; not a capacity estimate"
+}

@@ -1,0 +1,144 @@
+# Generate private IntelliJ environment:
+# python3 scripts/auth-hiring-setup.py
+# TEST_SESSION=.local/hiring-session.json python3 scripts/http-env.py
+# Select local. Run each section in order. Initialize all profiles with smoke-mvp3.py
+# or PUT /api/v1/members/me as each actor before company/application creation.
+
+### Create an UNVERIFIED company
+POST {{baseUrl}}/api/v1/companies
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{"displayName":"Local company","slug":"local-company-{{$uuid}}","description":"Self-created employer page","industry":"Software","location":"London","website":"https://example.com"}
+> {% client.global.set("companyId", response.body.id); %}
+
+### Upload owner logo
+POST {{baseUrl}}/api/v1/media
+Authorization: Bearer {{ownerToken}}
+Content-Type: multipart/form-data; boundary=hiring-upload
+
+--hiring-upload
+Content-Disposition: form-data; name="file"; filename="logo.png"
+Content-Type: image/png
+
+< ./fixtures/image.png
+--hiring-upload--
+> {% client.global.set("logoId", response.body.id); %}
+
+### Attach logo
+POST {{baseUrl}}/api/v1/media/attachments
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{"operationId":"{{$uuid}}","resourceType":"COMPANY","resourceId":"{{companyId}}","mediaIds":["{{logoId}}"]}
+
+### Invite existing recruiter
+POST {{baseUrl}}/api/v1/companies/{{companyId}}/invitations
+Authorization: Bearer {{ownerToken}}
+Content-Type: application/json
+
+{"memberId":"{{recruiterId}}"}
+> {% client.global.set("invitationId", response.body.id); %}
+
+### Accept as invited member
+POST {{baseUrl}}/api/v1/company-invitations/{{invitationId}}/accept
+Authorization: Bearer {{recruiterToken}}
+
+### Create draft
+POST {{baseUrl}}/api/v1/companies/{{companyId}}/jobs
+Authorization: Bearer {{recruiterToken}}
+Content-Type: application/json
+
+{"title":"Backend engineer","description":"Build maintainable services","location":"London","workArrangement":"REMOTE","employmentType":"FULL_TIME","salaryMinimum":60000,"salaryMaximum":90000,"salaryCurrency":"GBP","payPeriod":"YEAR"}
+> {% client.global.set("jobId", response.body.id); client.global.set("submissionKey", response.body.id); %}
+
+### Publish
+POST {{baseUrl}}/api/v1/jobs/{{jobId}}/publish
+Authorization: Bearer {{recruiterToken}}
+
+### Search
+GET {{baseUrl}}/api/v1/jobs?q=engineer&companyId={{companyId}}&workArrangement=REMOTE&size=20
+Authorization: Bearer {{aliceToken}}
+
+### Submit; keep this key for exact retries
+POST {{baseUrl}}/api/v1/applications
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{"jobId":"{{jobId}}","idempotencyKey":"{{submissionKey}}","coverNote":"Professional experience is in my profile."}
+> {% client.global.set("applicationId", response.body.id); client.global.set("applicationVersion", response.body.version); %}
+
+### Retry exactly
+POST {{baseUrl}}/api/v1/applications
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{"jobId":"{{jobId}}","idempotencyKey":"{{submissionKey}}","coverNote":"Professional experience is in my profile."}
+
+### Review
+PUT {{baseUrl}}/api/v1/applications/{{applicationId}}/status
+Authorization: Bearer {{recruiterToken}}
+Content-Type: application/json
+
+{"status":"IN_REVIEW","expectedVersion":{{applicationVersion}}}
+> {% client.global.set("applicationVersion", response.body.version); %}
+
+### Shortlist
+PUT {{baseUrl}}/api/v1/applications/{{applicationId}}/status
+Authorization: Bearer {{recruiterToken}}
+Content-Type: application/json
+
+{"status":"SHORTLISTED","expectedVersion":{{applicationVersion}}}
+
+### Applicant notifications
+GET {{baseUrl}}/api/v1/notifications
+Authorization: Bearer {{aliceToken}}
+
+### Unrelated company cannot inspect application:404
+GET {{baseUrl}}/api/v1/applications/{{applicationId}}
+Authorization: Bearer {{outsiderToken}}
+
+### Withdraw
+POST {{baseUrl}}/api/v1/applications/{{applicationId}}/withdraw
+Authorization: Bearer {{aliceToken}}
+
+### Recruiter sees redacted cover/profile
+GET {{baseUrl}}/api/v1/applications/{{applicationId}}
+Authorization: Bearer {{recruiterToken}}
+
+### Report published job
+POST {{baseUrl}}/api/v1/hiring/reports
+Authorization: Bearer {{bobToken}}
+Content-Type: application/json
+
+{"jobId":"{{jobId}}","reason":"SUSPECTED_FRAUD"}
+> {% client.global.set("reportId", response.body.id); %}
+
+### Audited inspection
+POST {{baseUrl}}/api/v1/hiring/moderation/reports/{{reportId}}/inspect
+Authorization: Bearer {{moderatorToken}}
+Content-Type: application/json
+
+{"reason":"Investigate submitted report"}
+
+### Hide
+POST {{baseUrl}}/api/v1/hiring/moderation/reports/{{reportId}}/actions
+Authorization: Bearer {{moderatorToken}}
+Content-Type: application/json
+
+{"action":"HIDE","reason":"Pending review"}
+
+### Restore
+POST {{baseUrl}}/api/v1/hiring/moderation/reports/{{reportId}}/actions
+Authorization: Bearer {{moderatorToken}}
+Content-Type: application/json
+
+{"action":"RESTORE","reason":"Review resolved"}
+
+### Close
+POST {{baseUrl}}/api/v1/jobs/{{jobId}}/close
+Authorization: Bearer {{recruiterToken}}
+
+### Revoke recruiter
+DELETE {{baseUrl}}/api/v1/companies/{{companyId}}/members/{{recruiterId}}
+Authorization: Bearer {{ownerToken}}

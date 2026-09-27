@@ -17,11 +17,11 @@ admin=req('POST',base+'/realms/master/protocol/openid-connect/token',{'grant_typ
 run=secrets.token_hex(5);client='smoke-'+run
 req('POST',base+'/admin/realms/network/clients',{'clientId':client,'publicClient':True,'directAccessGrantsEnabled':True,'standardFlowEnabled':False,'defaultClientScopes':['network-audience']},admin)
 users=[]
-for name in ['alice','bob','charlie']:
+for name in os.getenv('TEST_MEMBER_NAMES','alice,bob,charlie').split(','):
  username=name+'-'+run;password=secrets.token_hex(24)
  req('POST',base+'/admin/realms/network/users',{'username':username,'enabled':True,'emailVerified':True,'firstName':name,'lastName':'Smoke','email':username+'@example.invalid','credentials':[{'type':'password','value':password,'temporary':False}]},admin)
  u=req('GET',base+'/admin/realms/network/users?username='+username,token=admin)[0]
  token=req('POST',base+'/realms/network/protocol/openid-connect/token',{'grant_type':'password','client_id':client,'username':username,'password':password},form=True)
  users.append({'name':name,'id':u['id'],'username':username,'password':password,**token})
-Path('.local').mkdir(exist_ok=True);path=Path('.local/session.json');path.write_text(json.dumps({'client':client,'users':users}));os.chmod(path,0o600)
-print('Created three isolated test identities; tokens stored in .local/session.json')
+Path('.local').mkdir(exist_ok=True);path=Path(os.getenv('TEST_SESSION','.local/session.json'));path.write_text(json.dumps({'client':client,'users':users}));os.chmod(path,0o600)
+print('Created isolated test identities; tokens stored in private local session file')

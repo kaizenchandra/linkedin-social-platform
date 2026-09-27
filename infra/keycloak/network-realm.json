@@ -70,6 +70,20 @@
       "attributes": {
         "include.in.token.scope": "true"
       }
+    },
+    {
+      "name": "hiring.profiles",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      }
+    },
+    {
+      "name": "hiring.recipients",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      }
     }
   ],
   "clients": [
@@ -139,6 +153,30 @@
       "defaultClientScopes": [
         "network-audience",
         "connections.read"
+      ]
+    },
+    {
+      "clientId": "hiring-internal",
+      "publicClient": false,
+      "secret": "${HIRING_CLIENT_SECRET}",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "defaultClientScopes": [
+        "network-audience",
+        "hiring.profiles"
+      ]
+    },
+    {
+      "clientId": "notification-internal",
+      "publicClient": false,
+      "secret": "${NOTIFICATION_CLIENT_SECRET}",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "defaultClientScopes": [
+        "network-audience",
+        "hiring.recipients"
       ]
     }
   ]

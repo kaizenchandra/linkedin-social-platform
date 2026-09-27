@@ -35,6 +35,8 @@ class OracleNotificationIT {
     }
   }
 
+  @org.springframework.test.context.bean.override.mockito.MockitoBean dev.network.web.ServiceHttp http;
+  @Autowired org.springframework.jdbc.core.JdbcTemplate db;
   @Autowired dev.network.notification.events.NotificationConsumer consumer;
   @Autowired dev.network.notification.inbox.NotificationRepository notifications;
   @Autowired tools.jackson.databind.ObjectMapper json;
@@ -83,4 +85,25 @@ class OracleNotificationIT {
   void invalidEnvelopeCannotCommit() {
     assertThatThrownBy(() -> consumer.consume("{}")).isInstanceOf(IllegalArgumentException.class);
   }
+  @Test
+  void hiringFanoutRetryAndReplayAreAtomic() {
+    String eventId=UUID.randomUUID().toString(), actor=UUID.randomUUID().toString();
+    String owner=UUID.randomUUID().toString(), recruiter=UUID.randomUUID().toString();
+    var event=Map.of("eventId",eventId,"eventType","hiring.application.submitted","schemaVersion",1,
+      "occurredAt","2026-09-27T00:00:00Z","aggregateId",UUID.randomUUID().toString(),
+      "aggregateVersion",0,"producer","hiring-service","correlationId",eventId,"causationId",eventId,
+      "payload",Map.of("actorId",actor,"companyId",UUID.randomUUID().toString()));
+    String message=json.writeValueAsString(event);
+    org.mockito.Mockito.when(http.post(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.eq(dev.network.notification.events.NotificationConsumer.Recipients.class)))
+      .thenThrow(new IllegalStateException("Recipient service unavailable"));
+    assertThatThrownBy(()->consumer.consume(message)).isInstanceOf(IllegalStateException.class);
+    assertThat(db.queryForObject("SELECT COUNT(*) FROM consumed_events WHERE event_id=?",Long.class,eventId)).isZero();
+    assertThat(notifications.countByEventId(eventId)).isZero();
+    org.mockito.Mockito.when(http.post(org.mockito.ArgumentMatchers.anyString(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.eq(dev.network.notification.events.NotificationConsumer.Recipients.class)))
+      .thenReturn(new dev.network.notification.events.NotificationConsumer.Recipients(List.of(owner,recruiter,actor,recruiter)));
+    consumer.consume(message);consumer.consume(message);
+    assertThat(notifications.countByEventId(eventId)).isEqualTo(2);
+    assertThat(db.queryForObject("SELECT COUNT(*) FROM consumed_events WHERE event_id=?",Long.class,eventId)).isEqualTo(1);
+  }
+
 }

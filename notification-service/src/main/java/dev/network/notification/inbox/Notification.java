@@ -4,11 +4,11 @@ import jakarta.persistence.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "notifications")
+@Table(name = "notifications", uniqueConstraints = @UniqueConstraint(columnNames = {"eventId", "recipientId"}))
 public class Notification {
   @Id public String id;
 
-  @Column(nullable = false, unique = true)
+  @Column(nullable = false)
   public String eventId;
 
   @Column(nullable = false)

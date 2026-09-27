@@ -28,7 +28,10 @@
         "post.commented",
         "message.sent",
         "moderation.hidden",
-        "moderation.restored"
+        "moderation.restored",
+        "hiring.invitation.created",
+        "hiring.application.submitted",
+        "hiring.application.status"
       ]
     },
     "occurredAt": {
@@ -57,8 +60,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "actorId",
-        "recipientId"
+        "actorId"
       ],
       "properties": {
         "actorId": {
@@ -68,8 +70,63 @@
         "recipientId": {
           "type": "string",
           "format": "uuid"
+        },
+        "companyId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "recipientId"
+          ],
+          "not": {
+            "required": [
+              "companyId"
+            ]
+          }
+        },
+        {
+          "required": [
+            "companyId"
+          ],
+          "not": {
+            "required": [
+              "recipientId"
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "eventType": {
+            "const": "hiring.application.submitted"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "required": [
+              "companyId"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "payload": {
+            "required": [
+              "recipientId"
+            ]
+          }
         }
       }
     }
-  }
+  ]
 }

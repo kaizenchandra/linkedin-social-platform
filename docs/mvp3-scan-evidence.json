@@ -1,0 +1,19 @@
+{
+  "date": "2026-09-27",
+  "scanner": "pinned Trivy0.74.0",
+  "severityGate": [
+    "HIGH",
+    "CRITICAL"
+  ],
+  "applicationVersion": "0.3.0",
+  "findings": {
+    "member-service": 0,
+    "media-service": 0,
+    "api-gateway": 0,
+    "messaging-service": 0,
+    "notification-service": 0,
+    "hiring-service": 0,
+    "content-service": 0
+  },
+  "limits": "Point-in-time local application image scan; not proof of absence of vulnerabilities or a hosted CI result"
+}

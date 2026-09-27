@@ -1,0 +1,12 @@
+{
+  "traceId": "4905bbe53ba1a43cab1382c0a06c2685",
+  "services": [
+    "api-gateway",
+    "hiring-service",
+    "member-service",
+    "notification-service"
+  ],
+  "prometheusTargets": 7,
+  "applicationContentAbsentFromTraces": true,
+  "fixtureAbsentFromApplicationLogs": true
+}
