@@ -9,8 +9,17 @@ POST {{baseUrl}}/api/v1/companies
 Authorization: Bearer {{ownerToken}}
 Content-Type: application/json
 
-{"displayName":"Local company","slug":"local-company-{{$uuid}}","description":"Self-created employer page","industry":"Software","location":"London","website":"https://example.com"}
-> {% client.global.set("companyId", response.body.id); %}
+{
+  "displayName": "Local company",
+  "slug": "local-company-{{$uuid}}",
+  "description": "Self-created employer page",
+  "industry": "Software",
+  "location": "London",
+  "website": "https://example.com"
+}
+> {%
+    client.global.set("companyId", response.body.id);
+%}
 
 ### Upload owner logo
 POST {{baseUrl}}/api/v1/media
@@ -30,15 +39,26 @@ POST {{baseUrl}}/api/v1/media/attachments
 Authorization: Bearer {{ownerToken}}
 Content-Type: application/json
 
-{"operationId":"{{$uuid}}","resourceType":"COMPANY","resourceId":"{{companyId}}","mediaIds":["{{logoId}}"]}
+{
+  "operationId": "{{$uuid}}",
+  "resourceType": "COMPANY",
+  "resourceId": "{{companyId}}",
+  "mediaIds": [
+    "{{logoId}}"
+  ]
+}
 
 ### Invite existing recruiter
 POST {{baseUrl}}/api/v1/companies/{{companyId}}/invitations
 Authorization: Bearer {{ownerToken}}
 Content-Type: application/json
 
-{"memberId":"{{recruiterId}}"}
-> {% client.global.set("invitationId", response.body.id); %}
+{
+  "memberId": "{{recruiterId}}"
+}
+> {%
+    client.global.set("invitationId", response.body.id);
+%}
 
 ### Accept as invited member
 POST {{baseUrl}}/api/v1/company-invitations/{{invitationId}}/accept
@@ -49,8 +69,21 @@ POST {{baseUrl}}/api/v1/companies/{{companyId}}/jobs
 Authorization: Bearer {{recruiterToken}}
 Content-Type: application/json
 
-{"title":"Backend engineer","description":"Build maintainable services","location":"London","workArrangement":"REMOTE","employmentType":"FULL_TIME","salaryMinimum":60000,"salaryMaximum":90000,"salaryCurrency":"GBP","payPeriod":"YEAR"}
-> {% client.global.set("jobId", response.body.id); client.global.set("submissionKey", response.body.id); %}
+{
+  "title": "Backend engineer",
+  "description": "Build maintainable services",
+  "location": "London",
+  "workArrangement": "REMOTE",
+  "employmentType": "FULL_TIME",
+  "salaryMinimum": 60000,
+  "salaryMaximum": 90000,
+  "salaryCurrency": "GBP",
+  "payPeriod": "YEAR"
+}
+> {%
+    client.global.set("jobId", response.body.id);
+    client.global.set("submissionKey", response.body.id);
+%}
 
 ### Publish
 POST {{baseUrl}}/api/v1/jobs/{{jobId}}/publish
@@ -65,30 +98,49 @@ POST {{baseUrl}}/api/v1/applications
 Authorization: Bearer {{aliceToken}}
 Content-Type: application/json
 
-{"jobId":"{{jobId}}","idempotencyKey":"{{submissionKey}}","coverNote":"Professional experience is in my profile."}
-> {% client.global.set("applicationId", response.body.id); client.global.set("applicationVersion", response.body.version); %}
+{
+  "jobId": "{{jobId}}",
+  "idempotencyKey": "{{submissionKey}}",
+  "coverNote": "Professional experience is in my profile."
+}
+> {%
+    client.global.set("applicationId", response.body.id);
+    client.global.set("applicationVersion", response.body.version);
+%}
 
 ### Retry exactly
 POST {{baseUrl}}/api/v1/applications
 Authorization: Bearer {{aliceToken}}
 Content-Type: application/json
 
-{"jobId":"{{jobId}}","idempotencyKey":"{{submissionKey}}","coverNote":"Professional experience is in my profile."}
+{
+  "jobId": "{{jobId}}",
+  "idempotencyKey": "{{submissionKey}}",
+  "coverNote": "Professional experience is in my profile."
+}
 
 ### Review
 PUT {{baseUrl}}/api/v1/applications/{{applicationId}}/status
 Authorization: Bearer {{recruiterToken}}
 Content-Type: application/json
 
-{"status":"IN_REVIEW","expectedVersion":{{applicationVersion}}}
-> {% client.global.set("applicationVersion", response.body.version); %}
+{
+  "status": "IN_REVIEW",
+  "expectedVersion": {{applicationVersion}}
+}
+> {%
+    client.global.set("applicationVersion", response.body.version);
+%}
 
 ### Shortlist
 PUT {{baseUrl}}/api/v1/applications/{{applicationId}}/status
 Authorization: Bearer {{recruiterToken}}
 Content-Type: application/json
 
-{"status":"SHORTLISTED","expectedVersion":{{applicationVersion}}}
+{
+  "status": "SHORTLISTED",
+  "expectedVersion": {{applicationVersion}}
+}
 
 ### Applicant notifications
 GET {{baseUrl}}/api/v1/notifications
@@ -111,29 +163,42 @@ POST {{baseUrl}}/api/v1/hiring/reports
 Authorization: Bearer {{bobToken}}
 Content-Type: application/json
 
-{"jobId":"{{jobId}}","reason":"SUSPECTED_FRAUD"}
-> {% client.global.set("reportId", response.body.id); %}
+{
+  "jobId": "{{jobId}}",
+  "reason": "SUSPECTED_FRAUD"
+}
+> {%
+    client.global.set("reportId", response.body.id);
+%}
 
 ### Audited inspection
 POST {{baseUrl}}/api/v1/hiring/moderation/reports/{{reportId}}/inspect
 Authorization: Bearer {{moderatorToken}}
 Content-Type: application/json
 
-{"reason":"Investigate submitted report"}
+{
+  "reason": "Investigate submitted report"
+}
 
 ### Hide
 POST {{baseUrl}}/api/v1/hiring/moderation/reports/{{reportId}}/actions
 Authorization: Bearer {{moderatorToken}}
 Content-Type: application/json
 
-{"action":"HIDE","reason":"Pending review"}
+{
+  "action": "HIDE",
+  "reason": "Pending review"
+}
 
 ### Restore
 POST {{baseUrl}}/api/v1/hiring/moderation/reports/{{reportId}}/actions
 Authorization: Bearer {{moderatorToken}}
 Content-Type: application/json
 
-{"action":"RESTORE","reason":"Review resolved"}
+{
+  "action": "RESTORE",
+  "reason": "Review resolved"
+}
 
 ### Close
 POST {{baseUrl}}/api/v1/jobs/{{jobId}}/close

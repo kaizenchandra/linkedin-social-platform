@@ -1,6 +1,39 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Local stream verifier</title>
-<style>body{font:16px system-ui;max-width:900px;margin:3rem auto;padding:1rem}textarea{width:100%;height:5rem}button{margin:1rem .5rem 1rem 0}pre{white-space:pre-wrap;border:1px solid #ccc;padding:1rem;max-height:25rem;overflow:auto}</style>
-<h1>Local stream verifier</h1><p>Development tool. Paste a member access token from the documented PKCE workflow. The token and cursors stay only in this tab's memory. Supply a refreshed token when authentication expires.</p>
-<label>Access token<textarea id="token" autocomplete="off" spellcheck="false"></textarea></label><button id="connect">Connect / refresh credentials</button><button id="stop">Disconnect and clear</button>
-<p id="status">Disconnected</p><p id="counts"></p><pre id="events"></pre>
-<script type="module" src="client.js"></script></html>
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta content="width=device-width" name="viewport">
+<title>Local stream verifier</title>
+<style>body {
+    font: 16px system-ui;
+    max-width: 900px;
+    margin: 3rem auto;
+    padding: 1rem
+}
+
+textarea {
+    width: 100%;
+    height: 5rem
+}
+
+button {
+    margin: 1rem .5rem 1rem 0
+}
+
+pre {
+    white-space: pre-wrap;
+    border: 1px solid #ccc;
+    padding: 1rem;
+    max-height: 25rem;
+    overflow: auto
+}</style>
+<h1>Local stream verifier</h1>
+<p>Development tool. Paste a member access token from the documented PKCE workflow. The token and cursors stay only in
+    this tab's memory. Supply a refreshed token when authentication expires.</p>
+<label>Access token<textarea autocomplete="off" id="token" spellcheck="false"></textarea></label>
+<button id="connect">Connect / refresh credentials</button>
+<button id="stop">Disconnect and clear</button>
+<p id="status">Disconnected</p>
+<p id="counts"></p>
+<pre id="events"></pre>
+<script src="client.js" type="module"></script>
+</html>

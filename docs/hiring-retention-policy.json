@@ -1,10 +1,21 @@
 {
   "policyVersion": 1,
   "scope": "local MVP-3; operator-controlled policy, not an automated erasure schedule",
-  "applicationsAndSnapshots": {"retentionDaysAfterTerminal": null, "nullMeans": "retain until an approved operator procedure exists"},
-  "auditAndStatusHistory": {"retentionDays": null},
-  "notificationAndDeduplication": {"retentionDays": null, "constraint": "deduplication must outlive every supported replay window"},
-  "backups": {"retentionDays": null, "constraint": "operator configures storage expiry and verifies restore before deleting backups"},
+  "applicationsAndSnapshots": {
+    "retentionDaysAfterTerminal": null,
+    "nullMeans": "retain until an approved operator procedure exists"
+  },
+  "auditAndStatusHistory": {
+    "retentionDays": null
+  },
+  "notificationAndDeduplication": {
+    "retentionDays": null,
+    "constraint": "deduplication must outlive every supported replay window"
+  },
+  "backups": {
+    "retentionDays": null,
+    "constraint": "operator configures storage expiry and verifies restore before deleting backups"
+  },
   "withdrawal": "Immediately omit cover note and profile snapshot from recruiter API responses; applicant access and stored records remain",
   "configurationProcedure": "Product and operations may revise this versioned policy per environment. A finite value does not execute deletion: implement and verify a scoped retention worker before promising automatic expiry. No legal compliance or complete erasure claim."
 }

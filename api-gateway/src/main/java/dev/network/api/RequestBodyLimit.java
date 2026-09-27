@@ -11,72 +11,72 @@ import reactor.core.publisher.*;
 
 @Component
 public class RequestBodyLimit implements GlobalFilter, Ordered {
-  private final java.util.concurrent.Semaphore uploads = new java.util.concurrent.Semaphore(2);
+    private final java.util.concurrent.Semaphore uploads = new java.util.concurrent.Semaphore(2);
 
-  public int getOrder() {
-    return -100;
-  }
-
-  public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-    boolean upload = exchange.getRequest().getPath().value().equals("/api/v1/media");
-    if (upload && !uploads.tryAcquire()) {
-      return GatewayConfiguration.problem(exchange, 429, "Upload capacity busy");
+    public int getOrder() {
+        return -100;
     }
-    int limit = upload ? 6 * 1024 * 1024 : 65536;
-    return DataBufferUtils.join(exchange.getRequest().getBody(), limit)
-        .map(
-            buffer -> {
-              byte[] bytes = new byte[buffer.readableByteCount()];
-              buffer.read(bytes);
-              DataBufferUtils.release(buffer);
-              return bytes;
-            })
-        .defaultIfEmpty(new byte[0])
-        .flatMap(
-            bytes -> {
-              var request =
-                  new ServerHttpRequestDecorator(exchange.getRequest()) {
-                    @Override
-                    public Flux<DataBuffer> getBody() {
-                      return bytes.length == 0
-                          ? Flux.empty()
-                          : Flux.defer(
-                              () -> Flux.just(exchange.getResponse().bufferFactory().wrap(bytes)));
-                    }
 
-                    @Override
-                    public HttpHeaders getHeaders() {
-                      var headers = new HttpHeaders();
-                      headers.putAll(super.getHeaders());
-                      headers.remove(HttpHeaders.TRANSFER_ENCODING);
-                      headers.setContentLength(bytes.length);
-                      return headers;
-                    }
-                  };
-              return chain.filter(exchange.mutate().request(request).build());
-            })
-        .onErrorResume(
-            DataBufferLimitException.class,
-            e -> {
-              exchange.getResponse().setStatusCode(HttpStatus.PAYLOAD_TOO_LARGE);
-              exchange
-                  .getResponse()
-                  .getHeaders()
-                  .setContentType(MediaType.APPLICATION_PROBLEM_JSON);
-              return exchange
-                  .getResponse()
-                  .writeWith(
-                      Mono.just(
-                          exchange
-                              .getResponse()
-                              .bufferFactory()
-                              .wrap(
-                                  "{\"type\":\"about:blank\",\"status\":413,\"title\":\"Request too large\"}"
-                                      .getBytes(java.nio.charset.StandardCharsets.UTF_8))));
-            })
-        .doFinally(
-            signal -> {
-              if (upload) uploads.release();
-            });
-  }
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        boolean upload = exchange.getRequest().getPath().value().equals("/api/v1/media");
+        if (upload && !uploads.tryAcquire()) {
+            return GatewayConfiguration.problem(exchange, 429, "Upload capacity busy");
+        }
+        int limit = upload ? 6 * 1024 * 1024 : 65536;
+        return DataBufferUtils.join(exchange.getRequest().getBody(), limit)
+                .map(
+                        buffer -> {
+                            byte[] bytes = new byte[buffer.readableByteCount()];
+                            buffer.read(bytes);
+                            DataBufferUtils.release(buffer);
+                            return bytes;
+                        })
+                .defaultIfEmpty(new byte[0])
+                .flatMap(
+                        bytes -> {
+                            var request =
+                                    new ServerHttpRequestDecorator(exchange.getRequest()) {
+                                        @Override
+                                        public Flux<DataBuffer> getBody() {
+                                            return bytes.length == 0
+                                                    ? Flux.empty()
+                                                    : Flux.defer(
+                                                    () -> Flux.just(exchange.getResponse().bufferFactory().wrap(bytes)));
+                                        }
+
+                                        @Override
+                                        public HttpHeaders getHeaders() {
+                                            var headers = new HttpHeaders();
+                                            headers.putAll(super.getHeaders());
+                                            headers.remove(HttpHeaders.TRANSFER_ENCODING);
+                                            headers.setContentLength(bytes.length);
+                                            return headers;
+                                        }
+                                    };
+                            return chain.filter(exchange.mutate().request(request).build());
+                        })
+                .onErrorResume(
+                        DataBufferLimitException.class,
+                        e -> {
+                            exchange.getResponse().setStatusCode(HttpStatus.PAYLOAD_TOO_LARGE);
+                            exchange
+                                    .getResponse()
+                                    .getHeaders()
+                                    .setContentType(MediaType.APPLICATION_PROBLEM_JSON);
+                            return exchange
+                                    .getResponse()
+                                    .writeWith(
+                                            Mono.just(
+                                                    exchange
+                                                            .getResponse()
+                                                            .bufferFactory()
+                                                            .wrap(
+                                                                    "{\"type\":\"about:blank\",\"status\":413,\"title\":\"Request too large\"}"
+                                                                            .getBytes(java.nio.charset.StandardCharsets.UTF_8))));
+                        })
+                .doFinally(
+                        signal -> {
+                            if (upload) uploads.release();
+                        });
+    }
 }

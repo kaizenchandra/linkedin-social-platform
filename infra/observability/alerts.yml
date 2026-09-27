@@ -4,55 +4,55 @@ groups:
       - alert: NetworkOutboxBacklog
         expr: outbox_backlog > 100
         for: 5m
-        labels: {severity: warning}
-        annotations: {summary: "Committed events are accumulating; check broker and relay health"}
+        labels: { severity: warning }
+        annotations: { summary: "Committed events are accumulating; check broker and relay health" }
       - alert: MediaReconciliationFailures
         expr: increase(media_reconciliation_failures_total[5m]) > 0
         for: 5m
-        labels: {severity: warning}
-        annotations: {summary: "Media reconciliation is failing; check owner service and object storage"}
+        labels: { severity: warning }
+        annotations: { summary: "Media reconciliation is failing; check owner service and object storage" }
       - alert: NetworkServiceDown
         expr: up{job="network-services"} == 0
         for: 2m
-        labels: {severity: warning}
-        annotations: {summary: "An authenticated application metrics target is unavailable"}
+        labels: { severity: warning }
+        annotations: { summary: "An authenticated application metrics target is unavailable" }
       - alert: NotificationProcessingFailures
         expr: increase(notifications_failures_total[5m]) > 0
         for: 2m
-        labels: {severity: warning}
-        annotations: {summary: "Notification processing is failing; inspect DLT and consumer health"}
+        labels: { severity: warning }
+        annotations: { summary: "Notification processing is failing; inspect DLT and consumer health" }
       - alert: HiringDependencyOrServerErrors
         expr: sum(rate(http_server_requests_seconds_count{application="hiring-service",status=~"5.."}[5m])) > 0.1
         for: 5m
-        labels: {severity: warning}
-        annotations: {summary: "Hiring requests are failing; inspect profile dependency and database health"}
+        labels: { severity: warning }
+        annotations: { summary: "Hiring requests are failing; inspect profile dependency and database health" }
       - alert: JobAlertMatchingStalled
         expr: network_alert_oldest_seconds > 300
         for: 5m
-        labels: {severity: warning}
-        annotations: {summary: "Job-alert work is aging; inspect worker, database and outbox backpressure"}
+        labels: { severity: warning }
+        annotations: { summary: "Job-alert work is aging; inspect worker, database and outbox backpressure" }
       - alert: JobAlertMatchingFailed
         expr: network_alert_failed > 0
         for: 1m
-        labels: {severity: warning}
-        annotations: {summary: "Matching exhausted retries; repair cause then replay FAILED work"}
+        labels: { severity: warning }
+        annotations: { summary: "Matching exhausted retries; repair cause then replay FAILED work" }
       - alert: JobPublicationDeadLetters
         expr: increase(network_alert_consumer_deadletters_total[5m]) > 0
         for: 1m
-        labels: {severity: warning}
-        annotations: {summary: "Publication ingestion failed; inspect hiring DLT and snapshot availability"}
+        labels: { severity: warning }
+        annotations: { summary: "Publication ingestion failed; inspect hiring DLT and snapshot availability" }
       - alert: StreamDatabaseFailures
         expr: sum(rate(network_stream_disconnects_total{reason=~"database_error|database_timeout"}[5m])) > 0
         for: 2m
-        labels: {severity: warning}
-        annotations: {summary: "Streams cannot progress; inspect Oracle and readiness before replaying"}
+        labels: { severity: warning }
+        annotations: { summary: "Streams cannot progress; inspect Oracle and readiness before replaying" }
       - alert: StreamCapacityPressure
         expr: (sum(rate(network_stream_admission_rejected_total[5m])) or vector(0)) + (sum(rate(network_stream_gateway_rejected_total[5m])) or vector(0)) > 0.1
         for: 5m
-        labels: {severity: warning}
-        annotations: {summary: "Instance-local stream admission is rejecting clients; inspect measured capacity"}
+        labels: { severity: warning }
+        annotations: { summary: "Instance-local stream admission is rejecting clients; inspect measured capacity" }
       - alert: StreamRetentionCleanupFailure
         expr: sum(increase(network_stream_cleanup_failures_total[5m])) > 0
         for: 5m
-        labels: {severity: warning}
-        annotations: {summary: "Replay retention cleanup is failing; inspect database and oldest retained history"}
+        labels: { severity: warning }
+        annotations: { summary: "Replay retention cleanup is failing; inspect database and oldest retained history" }

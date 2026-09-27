@@ -17,14 +17,14 @@ services:
       HIRING_DB_PASSWORD: ${HIRING_DB_PASSWORD}
       HIRING_RUNTIME_PASSWORD: ${HIRING_RUNTIME_PASSWORD}
     ports:
-    - 127.0.0.1:1521:1521
+      - 127.0.0.1:1521:1521
     volumes:
-    - oracle-data:/opt/oracle/oradata
-    - ./infra/oracle:/container-entrypoint-initdb.d:ro
+      - oracle-data:/opt/oracle/oradata
+      - ./infra/oracle:/container-entrypoint-initdb.d:ro
     healthcheck:
       test:
-      - CMD
-      - healthcheck.sh
+        - CMD
+        - healthcheck.sh
       interval: 10s
       timeout: 5s
       retries: 60
@@ -33,7 +33,7 @@ services:
   kafka:
     image: apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e
     ports:
-    - 127.0.0.1:9092:9092
+      - 127.0.0.1:9092:9092
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -62,25 +62,25 @@ services:
       KAFKA_MESSAGING_PASSWORD: ${KAFKA_MESSAGING_PASSWORD}
       KAFKA_HIRING_PASSWORD: ${KAFKA_HIRING_PASSWORD}
     volumes:
-    - kafka-data:/var/lib/kafka/data
-    - ./infra/kafka:/opt/network:ro
+      - kafka-data:/var/lib/kafka/data
+      - ./infra/kafka:/opt/network:ro
     healthcheck:
       test:
-      - CMD-SHELL
-      - /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 --command-config
-        /tmp/admin.properties --list >/dev/null
+        - CMD-SHELL
+        - /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:19092 --command-config
+          /tmp/admin.properties --list >/dev/null
       interval: 10s
       timeout: 10s
       retries: 30
     command:
-    - /bin/bash
-    - /opt/network/start.sh
+      - /bin/bash
+      - /opt/network/start.sh
     restart: unless-stopped
   keycloak:
     image: quay.io/keycloak/keycloak:26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c
     command:
-    - start-dev
-    - --import-realm
+      - start-dev
+      - --import-realm
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?run init-local.py}
@@ -93,15 +93,15 @@ services:
       HIRING_CLIENT_SECRET: ${HIRING_CLIENT_SECRET}
       NOTIFICATION_CLIENT_SECRET: ${NOTIFICATION_CLIENT_SECRET}
     ports:
-    - 127.0.0.1:8180:8080
+      - 127.0.0.1:8180:8080
     volumes:
-    - keycloak-data:/opt/keycloak/data
-    - ./infra/keycloak:/opt/keycloak/data/import:ro
+      - keycloak-data:/opt/keycloak/data
+      - ./infra/keycloak:/opt/keycloak/data/import:ro
     healthcheck:
       test:
-      - CMD-SHELL
-      - bash -c 'exec 3<>/dev/tcp/localhost/9000; printf "GET /health/ready HTTP/1.0\r\n\r\n"
-        >&3; cat <&3 | grep -q UP'
+        - CMD-SHELL
+        - bash -c 'exec 3<>/dev/tcp/localhost/9000; printf "GET /health/ready HTTP/1.0\r\n\r\n"
+          >&3; cat <&3 | grep -q UP'
       interval: 10s
       timeout: 5s
       retries: 40
@@ -132,7 +132,7 @@ services:
       KAFKA_USER: member
       KAFKA_PASSWORD: ${KAFKA_MEMBER_PASSWORD}
     ports:
-    - 127.0.0.1:8081:8080
+      - 127.0.0.1:8081:8080
     depends_on:
       member-migration:
         condition: service_completed_successfully
@@ -147,9 +147,9 @@ services:
     mem_limit: 640m
     healthcheck:
       test:
-      - CMD-SHELL
-      - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
-        HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
+        - CMD-SHELL
+        - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
+          HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
       interval: 5s
       timeout: 3s
       retries: 60
@@ -181,7 +181,7 @@ services:
       KAFKA_USER: content
       KAFKA_PASSWORD: ${KAFKA_CONTENT_PASSWORD}
     ports:
-    - 127.0.0.1:8082:8080
+      - 127.0.0.1:8082:8080
     depends_on:
       content-migration:
         condition: service_completed_successfully
@@ -196,9 +196,9 @@ services:
     mem_limit: 640m
     healthcheck:
       test:
-      - CMD-SHELL
-      - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
-        HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
+        - CMD-SHELL
+        - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
+          HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
       interval: 5s
       timeout: 3s
       retries: 60
@@ -237,7 +237,7 @@ services:
       KAFKA_USER: notification
       KAFKA_PASSWORD: ${KAFKA_NOTIFICATION_PASSWORD}
     ports:
-    - 127.0.0.1:8083:8080
+      - 127.0.0.1:8083:8080
     depends_on:
       notification-migration:
         condition: service_completed_successfully
@@ -252,9 +252,9 @@ services:
     mem_limit: 640m
     healthcheck:
       test:
-      - CMD-SHELL
-      - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
-        HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
+        - CMD-SHELL
+        - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
+          HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
       interval: 5s
       timeout: 3s
       retries: 60
@@ -280,7 +280,7 @@ services:
       MESSAGING_URL: http://messaging-service:8080
       HIRING_URL: http://hiring-service:8080
     ports:
-    - 127.0.0.1:8080:8080
+      - 127.0.0.1:8080:8080
     depends_on:
       keycloak:
         condition: service_healthy
@@ -299,9 +299,9 @@ services:
     mem_limit: 640m
     healthcheck:
       test:
-      - CMD-SHELL
-      - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
-        HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
+        - CMD-SHELL
+        - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
+          HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
       interval: 5s
       timeout: 3s
       retries: 60
@@ -310,11 +310,11 @@ services:
   member-migration:
     image: professional-network/member-service:0.5.0
     entrypoint:
-    - java
-    - -Dloader.main=dev.network.web.Migrate
-    - -cp
-    - /app/app.jar
-    - org.springframework.boot.loader.launch.PropertiesLauncher
+      - java
+      - -Dloader.main=dev.network.web.Migrate
+      - -cp
+      - /app/app.jar
+      - org.springframework.boot.loader.launch.PropertiesLauncher
     environment:
       DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
       DB_USER: member_app
@@ -326,11 +326,11 @@ services:
   content-migration:
     image: professional-network/content-service:0.5.0
     entrypoint:
-    - java
-    - -Dloader.main=dev.network.web.Migrate
-    - -cp
-    - /app/app.jar
-    - org.springframework.boot.loader.launch.PropertiesLauncher
+      - java
+      - -Dloader.main=dev.network.web.Migrate
+      - -cp
+      - /app/app.jar
+      - org.springframework.boot.loader.launch.PropertiesLauncher
     environment:
       DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
       DB_USER: content_app
@@ -342,11 +342,11 @@ services:
   notification-migration:
     image: professional-network/notification-service:0.5.0
     entrypoint:
-    - java
-    - -Dloader.main=dev.network.web.Migrate
-    - -cp
-    - /app/app.jar
-    - org.springframework.boot.loader.launch.PropertiesLauncher
+      - java
+      - -Dloader.main=dev.network.web.Migrate
+      - -cp
+      - /app/app.jar
+      - org.springframework.boot.loader.launch.PropertiesLauncher
     environment:
       DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
       DB_USER: notification_app
@@ -358,35 +358,35 @@ services:
   kafka-init:
     image: apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e
     command:
-    - /bin/bash
-    - /opt/network/init.sh
+      - /bin/bash
+      - /opt/network/init.sh
     environment:
       KAFKA_ADMIN_PASSWORD: ${KAFKA_ADMIN_PASSWORD}
     volumes:
-    - ./infra/kafka:/opt/network:ro
+      - ./infra/kafka:/opt/network:ro
     depends_on:
       kafka:
         condition: service_healthy
   object-store:
     image: chrislusf/seaweedfs:4.47@sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882
     command:
-    - mini
-    - -dir=/data
-    - -s3.config=/run/secrets/s3-identities.json
+      - mini
+      - -dir=/data
+      - -s3.config=/run/secrets/s3-identities.json
     environment:
       AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
       S3_BUCKET: network-media
     volumes:
-    - object-data:/data
-    - ./.local/s3-identities.json:/run/secrets/s3-identities.json:ro
+      - object-data:/data
+      - ./.local/s3-identities.json:/run/secrets/s3-identities.json:ro
     ports:
-    - 127.0.0.1:8333:8333
+      - 127.0.0.1:8333:8333
     mem_limit: 512m
     healthcheck:
       test:
-      - CMD-SHELL
-      - wget -q -O /dev/null http://localhost:9333/cluster/status
+        - CMD-SHELL
+        - wget -q -O /dev/null http://localhost:9333/cluster/status
       interval: 5s
       timeout: 3s
       retries: 60
@@ -419,7 +419,7 @@ services:
       S3_SECRET_KEY: ${MEDIA_S3_SECRET_KEY}
       HIRING_URL: http://hiring-service:8080
     ports:
-    - 127.0.0.1:8084:8080
+      - 127.0.0.1:8084:8080
     depends_on:
       keycloak:
         condition: service_healthy
@@ -432,9 +432,9 @@ services:
     mem_limit: 640m
     healthcheck:
       test:
-      - CMD-SHELL
-      - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
-        HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
+        - CMD-SHELL
+        - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
+          HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
       interval: 5s
       timeout: 3s
       retries: 60
@@ -443,11 +443,11 @@ services:
   media-migration:
     image: professional-network/media-service:0.5.0
     entrypoint:
-    - java
-    - -Dloader.main=dev.network.web.Migrate
-    - -cp
-    - /app/app.jar
-    - org.springframework.boot.loader.launch.PropertiesLauncher
+      - java
+      - -Dloader.main=dev.network.web.Migrate
+      - -cp
+      - /app/app.jar
+      - org.springframework.boot.loader.launch.PropertiesLauncher
     environment:
       DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
       DB_USER: media_app
@@ -488,7 +488,7 @@ services:
       INTERNAL_CLIENT_ID: messaging-internal
       INTERNAL_CLIENT_SECRET: ${MESSAGING_CLIENT_SECRET}
     ports:
-    - 127.0.0.1:8085:8080
+      - 127.0.0.1:8085:8080
     depends_on:
       keycloak:
         condition: service_healthy
@@ -503,9 +503,9 @@ services:
     mem_limit: 640m
     healthcheck:
       test:
-      - CMD-SHELL
-      - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
-        HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
+        - CMD-SHELL
+        - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
+          HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
       interval: 5s
       timeout: 3s
       retries: 60
@@ -514,11 +514,11 @@ services:
   messaging-migration:
     image: professional-network/messaging-service:0.5.0
     entrypoint:
-    - java
-    - -Dloader.main=dev.network.web.Migrate
-    - -cp
-    - /app/app.jar
-    - org.springframework.boot.loader.launch.PropertiesLauncher
+      - java
+      - -Dloader.main=dev.network.web.Migrate
+      - -cp
+      - /app/app.jar
+      - org.springframework.boot.loader.launch.PropertiesLauncher
     environment:
       DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
       DB_USER: messaging_app
@@ -554,7 +554,7 @@ services:
       INTERNAL_CLIENT_ID: hiring-internal
       INTERNAL_CLIENT_SECRET: ${HIRING_CLIENT_SECRET}
     ports:
-    - 127.0.0.1:8086:8080
+      - 127.0.0.1:8086:8080
     depends_on:
       keycloak:
         condition: service_healthy
@@ -569,9 +569,9 @@ services:
     mem_limit: 640m
     healthcheck:
       test:
-      - CMD-SHELL
-      - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
-        HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
+        - CMD-SHELL
+        - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
+          HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
       interval: 5s
       timeout: 3s
       retries: 60
@@ -580,11 +580,11 @@ services:
   hiring-migration:
     image: professional-network/hiring-service:0.5.0
     entrypoint:
-    - java
-    - -Dloader.main=dev.network.web.Migrate
-    - -cp
-    - /app/app.jar
-    - org.springframework.boot.loader.launch.PropertiesLauncher
+      - java
+      - -Dloader.main=dev.network.web.Migrate
+      - -cp
+      - /app/app.jar
+      - org.springframework.boot.loader.launch.PropertiesLauncher
     environment:
       DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
       DB_USER: hiring_app

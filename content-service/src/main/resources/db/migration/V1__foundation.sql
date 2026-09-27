@@ -1,1 +1,4 @@
-CREATE TABLE schema_marker (id NUMBER(10) PRIMARY KEY);
+CREATE TABLE schema_marker
+(
+    id NUMBER(10) PRIMARY KEY
+);

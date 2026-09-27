@@ -1,14 +1,17 @@
-Paste this into the same IntelliJ Codex project. MVP-6 focuses on **account lifecycle, personal-data export, account deletion, and security hardening**, with durable workflows across the existing services.
+Paste this into the same IntelliJ Codex project. MVP-6 focuses on **account lifecycle, personal-data export, account
+deletion, and security hardening**, with durable workflows across the existing services.
 
 You are my principal backend engineer and implementation agent working inside IntelliJ.
 
 Extend the existing professional networking platform from MVP-5 to MVP-6 through incremental, verified development.
 
-Implement working code, migrations, tests, API contracts, deployment updates, and operational documentation. Do not stop after planning or scaffolding.
+Implement working code, migrations, tests, API contracts, deployment updates, and operational documentation. Do not stop
+after planning or scaffolding.
 
 ## 1. Starting point and execution rules
 
 The intended existing platform contains:
+
 - Java 21, Spring Boot 4.x, Spring Cloud, Spring Security, and Maven.
 - Gateway, member, content, media, messaging, notification, and hiring services.
 - Keycloak for OIDC.
@@ -19,6 +22,7 @@ The intended existing platform contains:
 - Prometheus, Grafana, OpenTelemetry, and Zipkin.
 
 Previous releases should provide:
+
 - Profiles, connections, follows, posts, media, and messaging.
 - Privacy controls, blocking, moderation, and saved items.
 - Companies, jobs, applications, discovery, and job alerts.
@@ -27,6 +31,7 @@ Previous releases should provide:
 Treat this as intended context, not evidence of implementation.
 
 Before editing:
+
 - Read applicable AGENTS.md instructions.
 - Inspect actual code, contracts, migrations, ADRs, and progress records.
 - Run available baseline checks.
@@ -38,7 +43,8 @@ Continue automatically after phase verification gates pass. Ask only when missin
 
 Do not rewrite working services, perform unrelated upgrades, weaken authorization, or claim unexecuted checks passed.
 
-Do not operate on real user accounts or shared environments without explicit authorization. Use disposable local identities and fixtures for lifecycle testing.
+Do not operate on real user accounts or shared environments without explicit authorization. Use disposable local
+identities and fixtures for lifecycle testing.
 
 ## 2. MVP-6 objective
 
@@ -52,6 +58,7 @@ Deliver account lifecycle and personal-data controls:
 6. Operational evidence for recovery, retention, and failure handling.
 
 Exclude:
+
 - A production frontend.
 - Billing and subscriptions.
 - Enterprise SSO onboarding.
@@ -61,11 +68,13 @@ Exclude:
 - A new microservice solely for account lifecycle.
 - Platform-wide administrator impersonation.
 
-Implement technical controls and document their limits. Do not claim legal compliance or complete anonymization without supporting evidence.
+Implement technical controls and document their limits. Do not claim legal compliance or complete anonymization without
+supporting evidence.
 
 ## 3. Architecture and ownership
 
 Use `member-service` as the owner of:
+
 - Platform account lifecycle state.
 - Lifecycle operation records.
 - Deletion scheduling.
@@ -77,6 +86,7 @@ Keycloak remains authoritative for identity credentials and authentication sessi
 Each existing service owns cleanup and export of its own data.
 
 Rules:
+
 - No cross-service database access.
 - No distributed database transactions.
 - Use explicit, versioned commands and acknowledgements.
@@ -85,6 +95,7 @@ Rules:
 - Do not use Kafka delivery as proof that cleanup completed.
 
 Persist:
+
 - Operation ID.
 - Member ID.
 - Lifecycle generation/version.
@@ -131,6 +142,7 @@ Expose operation status to the account owner through a narrowly authorized endpo
 Deactivation is reversible.
 
 On deactivation:
+
 - Reject new social, messaging, hiring, upload, and job-alert mutations by the member.
 - Hide the profile from discovery.
 - Hide authored social posts and associated media from ordinary readers.
@@ -140,22 +152,26 @@ On deactivation:
 - Preserve data for reactivation.
 
 Historical messages:
+
 - Remain accessible to other conversation participants under existing rules.
 - Show the sender as unavailable where appropriate.
 - Do not expose the deactivated profile through message hydration.
 
 Hiring:
+
 - Existing applications remain visible to authorized company reviewers under the established application policy.
 - Existing company jobs remain company-owned.
 - Deactivated recruiters lose access.
 - Do not silently delete company data.
 
 Company ownership:
+
 - Require transfer of ownership before deactivation or deletion when the member is the sole owner.
 - Return a clear conflict listing only companies the member is authorized to manage.
 - Do not automatically transfer ownership to an arbitrary recruiter.
 
 Reactivation:
+
 - Restore access through the identity provider and platform lifecycle flow.
 - Restore content only if it was hidden solely because of account state.
 - Preserve independent author deletion, moderation, blocking, and job lifecycle decisions.
@@ -164,6 +180,7 @@ Reactivation:
 ## 6. Restricted lifecycle access
 
 Deactivated accounts must have a secure way to:
+
 - View account status.
 - Reactivate.
 - Request an export.
@@ -172,17 +189,20 @@ Deactivated accounts must have a secure way to:
 
 Keep authentication and platform authorization separate.
 
-Do not disable identity-provider login in a way that makes the recovery flow impossible unless a tested alternative exists.
+Do not disable identity-provider login in a way that makes the recovery flow impossible unless a tested alternative
+exists.
 
 Restrict DEACTIVATED and DELETION_REQUESTED users to explicitly allowed lifecycle endpoints.
 
 Require recent authentication for:
+
 - Export download authorization.
 - Deletion request.
 - Deletion cancellation.
 - Reactivation.
 
-Verify the identity provider’s supported reauthentication mechanism. Do not treat token refresh alone as proof of recent authentication.
+Verify the identity provider’s supported reauthentication mechanism. Do not treat token refresh alone as proof of recent
+authentication.
 
 Use server-validated claims and configuration. Do not trust a client-provided “reauthenticated” flag.
 
@@ -193,6 +213,7 @@ Every service must enforce lifecycle restrictions, including internal entry poin
 An authenticated JWT alone is insufficient evidence that an account is currently active.
 
 Define:
+
 - How services obtain current lifecycle state.
 - Whether any caching is permitted.
 - Cache invalidation and maximum staleness.
@@ -202,6 +223,7 @@ Define:
 Do not claim instantaneous cross-service revocation unless demonstrated.
 
 Before irreversible deletion:
+
 - Establish a durable write fence.
 - Prevent new operations from recreating account-owned data.
 - Drain or invalidate in-flight work according to a documented protocol.
@@ -216,6 +238,7 @@ Privacy-sensitive reads must fail closed when required lifecycle authorization c
 ## 8. Personal-data export
 
 Provide asynchronous APIs to:
+
 - Request an export.
 - Retrieve export status.
 - Download a completed export.
@@ -223,15 +246,18 @@ Provide asynchronous APIs to:
 
 Allow one active export per member.
 
-Use a configurable cooldown to prevent repeated expensive exports. Return a clear retry time rather than silently ignoring requests.
+Use a configurable cooldown to prevent repeated expensive exports. Return a clear retry time rather than silently
+ignoring requests.
 
 Export format:
+
 - ZIP containing documented JSON files.
 - A manifest describing schema versions, included sections, extraction times, and omissions.
 - Owned media files where practical and authorized.
 - Checksums for archive entries.
 
 Include:
+
 - Profile and experience information.
 - The member’s relationship and preference records.
 - Authored posts and comments.
@@ -241,6 +267,7 @@ Include:
 - Saved searches, follows, and notification preferences.
 
 Do not include:
+
 - Password hashes, tokens, secrets, or internal credentials.
 - Other users’ private profiles.
 - Private reporter identities.
@@ -251,6 +278,7 @@ Do not include:
 Create an explicit field-level export policy before implementation.
 
 Consistency:
+
 - Record per-service extraction boundaries.
 - Use a consistent snapshot within each service where supported.
 - Do not claim one atomic snapshot across all databases.
@@ -263,6 +291,7 @@ Do not silently mark an export complete if a required section failed.
 Keep export archives private.
 
 Requirements:
+
 - Generate unpredictable object keys.
 - Authorize every status and download request.
 - Prevent account-to-account access by guessing operation IDs.
@@ -274,6 +303,7 @@ Requirements:
 Default completed-export expiry: 24 hours.
 
 Prefer an authenticated download endpoint. If using signed URLs:
+
 - Keep their lifetime short.
 - Document their residual access window.
 - Do not claim immediate revocation after URL issuance.
@@ -284,9 +314,11 @@ Never route export archives through a public media endpoint.
 
 ## 10. Account deletion
 
-Use a configurable cancellation period, defaulting to seven days for local product behavior. This is a product default, not a legal requirement.
+Use a configurable cancellation period, defaulting to seven days for local product behavior. This is a product default,
+not a legal requirement.
 
 On request:
+
 - Require recent authentication.
 - Require explicit confirmation through the API.
 - Validate company-ownership prerequisites.
@@ -296,12 +328,14 @@ On request:
 - Return the scheduled deletion time.
 
 Cancellation:
+
 - Allow only before irreversible deletion starts.
 - Restore the previous lifecycle state.
 - Do not recreate revoked sessions automatically.
 - Resolve cancellation versus worker-start races transactionally.
 
 After the deadline:
+
 - Move to DELETING.
 - Apply the durable write fence.
 - Run service-specific cleanup.
@@ -317,22 +351,26 @@ Create and implement a service-by-service matrix.
 Default behavior:
 
 Member data:
+
 - Remove profile details, experience, connections, follows, blocks, and preferences.
 - Retain only minimal lifecycle tombstones required to reject stale work.
 
 Content:
+
 - Remove authored post and comment bodies and owned attachments.
 - Preserve minimal structural tombstones where threads require them.
 - Remove the member’s likes and saved-item records.
 - Do not delete other members’ independent content unnecessarily.
 
 Media:
+
 - Delete unreferenced owned objects.
 - Handle incomplete multipart uploads and temporary objects.
 - Do not delete company-owned logos solely because their uploader is deleted.
 - Verify ownership semantics before cleanup.
 
 Messaging:
+
 - Remove the deleted member’s private read state and preferences.
 - Preserve conversation history available to remaining participants.
 - Replace profile presentation with a deleted-member label.
@@ -340,10 +378,12 @@ Messaging:
 - Do not describe this as complete anonymization.
 
 Notifications:
+
 - Remove the member’s notification inbox and replay history.
 - Prevent new notification creation.
 
 Hiring:
+
 - Remove personal saved jobs, searches, follows, and recruiter memberships.
 - Preserve company-owned jobs.
 - Remove or redact the deleted applicant’s profile snapshot and cover note.
@@ -351,6 +391,7 @@ Hiring:
 - Do not expose deleted profile information through historical recruiter responses.
 
 Audit records:
+
 - Retain only justified fields for a configured period.
 - Remove unnecessary personal payloads.
 - Document what remains and why.
@@ -360,6 +401,7 @@ Do not use indefinite soft deletion as a substitute for the requested cleanup.
 ## 12. Backups and replay safety
 
 Document the difference between:
+
 - Live-system deletion.
 - Object-storage deletion.
 - Retained audit records.
@@ -370,11 +412,13 @@ Do not promise immediate erasure from existing backups.
 Provide a recovery procedure that reapplies deletion decisions after restoring an older backup.
 
 Maintain a minimal deletion ledger or equivalent mechanism that:
+
 - Survives the relevant restore workflow.
 - Prevents restored accounts from becoming active before reconciliation.
 - Contains no unnecessary profile data.
 
 Test that replaying old business events cannot recreate:
+
 - Deleted profiles.
 - Notifications.
 - Saved searches.
@@ -388,6 +432,7 @@ Treat lifecycle tombstones and deletion-ledger retention as explicit operational
 Keep the established Java and Spring stack.
 
 Evaluate Spring Batch for:
+
 - Restartable export extraction.
 - Large cleanup jobs.
 - Retention processing.
@@ -397,6 +442,7 @@ Use it only where checkpointing and chunk processing improve the actual implemen
 Do not add a workflow platform, analytics cluster, or new language runtime merely for this release.
 
 Required workflow behavior:
+
 - Idempotent commands and acknowledgements.
 - Bounded retries.
 - Durable checkpoints.
@@ -406,13 +452,15 @@ Required workflow behavior:
 - Reconciliation of missing acknowledgements.
 - No false success after partial failure.
 
-Authenticate operator endpoints and audit their use. Operators must not be able to bypass lifecycle invariants through a generic “force complete” action.
+Authenticate operator endpoints and audit their use. Operators must not be able to bypass lifecycle invariants through a
+generic “force complete” action.
 
 ## 14. Development phases
 
 ### Phase 0 — Baseline and policy
 
 Deliver:
+
 - MVP-5 baseline results.
 - Lifecycle state machine.
 - Access-policy matrix.
@@ -421,6 +469,7 @@ Deliver:
 - Write-fencing and recovery design.
 
 Gate:
+
 - Resolve required prerequisites.
 - Identify irreversible operations and their local test fixtures.
 
@@ -429,6 +478,7 @@ Gate:
 Implement lifecycle APIs, service enforcement, session integration, and stream termination behavior.
 
 Gate:
+
 - Restricted accounts cannot perform ordinary mutations.
 - Existing tokens do not bypass lifecycle checks.
 - Reactivation restores only eligible access.
@@ -440,6 +490,7 @@ Gate:
 Implement durable export orchestration, per-service extraction, private archives, and expiry.
 
 Gate:
+
 - Exports contain the documented fields.
 - Another member cannot access them.
 - Failed sections prevent false completion.
@@ -451,6 +502,7 @@ Gate:
 Implement scheduling, cancellation, write fencing, service cleanup, and identity finalization.
 
 Gate:
+
 - Cancellation races are deterministic.
 - Interrupted cleanup resumes safely.
 - Delayed writes and events cannot recreate deleted data.
@@ -462,6 +514,7 @@ Gate:
 Implement retention workers, operator status tools, deletion-ledger handling, and restore reconciliation.
 
 Gate:
+
 - Duplicate commands and acknowledgements are safe.
 - Lost acknowledgements can be reconciled.
 - A restored backup cannot silently reactivate deleted accounts.
@@ -472,6 +525,7 @@ Gate:
 Update integration tests, deployment configuration, CI, dashboards, runbooks, and IntelliJ HTTP examples.
 
 Gate:
+
 - Fresh setup works.
 - Upgrade from populated MVP-5 data works.
 - Existing regression tests pass.
@@ -509,6 +563,7 @@ Use an injectable clock for deadlines. Do not wait seven real days or weaken pro
 ## 16. Progress and definition of done
 
 Maintain:
+
 - `docs/mvp6-plan.md`
 - `docs/mvp6-progress.md`
 - `docs/mvp6-verification.md`
@@ -518,6 +573,7 @@ Maintain:
 Update existing ADRs, contracts, architecture, and runbooks.
 
 At each phase boundary:
+
 - Summarize implemented behavior.
 - Record actual checks.
 - Separate PASS, FAIL, BLOCKED, and NOT RUN.
@@ -526,6 +582,7 @@ At each phase boundary:
 If interrupted, save a precise checkpoint and resume from repository evidence.
 
 MVP-6 is complete when:
+
 - Deactivation and reactivation enforce the defined policy.
 - Exports are authorized, complete, private, and recoverable.
 - Deletion is cancellable before execution and restartable afterward.
@@ -536,4 +593,5 @@ MVP-6 is complete when:
 
 Do not claim legal compliance, immediate global revocation, or complete erasure beyond the verified implementation.
 
-Start by inspecting MVP-5 and running baseline verification. Then implement MVP-6 phase by phase until the acceptance criteria are satisfied.
+Start by inspecting MVP-5 and running baseline verification. Then implement MVP-6 phase by phase until the acceptance
+criteria are satisfied.

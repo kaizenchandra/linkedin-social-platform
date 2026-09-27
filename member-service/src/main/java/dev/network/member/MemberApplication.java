@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication(scanBasePackages = {"dev.network.member", "dev.network.web"})
 @EnableScheduling
 public class MemberApplication {
-  public static void main(String[] args) {
-    SpringApplication.run(MemberApplication.class, args);
-  }
+    public static void main(String[] args) {
+        SpringApplication.run(MemberApplication.class, args);
+    }
 }
