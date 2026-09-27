@@ -1,4 +1,4 @@
-name: Verify MVP-4
+name: Verify MVP-5
 on:
   push:
   pull_request:
@@ -69,6 +69,16 @@ jobs:
           python scripts/check-mvp4-member-outage.py
           python scripts/check-mvp4-restart.py
           python scripts/check-mvp4-upgrade.py
+      - name: Durable live updates and private controls
+        run: |
+          python scripts/upgrade-mvp5.py
+          for check in check-mvp5-messaging check-mvp5-controls check-mvp5-failures check-mvp5-mute-recovery check-mvp5-contracts; do
+            python scripts/auth-hiring-setup.py
+            python scripts/$check.py
+          done
+          python scripts/check-mvp5-expiry.py
+          python scripts/check-mvp5-upgrade.py
+          node scripts/check-realtime-client.cjs
       - name: Contracts and manifests
         run: |
           pip install -r scripts/requirements.lock
@@ -88,6 +98,7 @@ jobs:
             docs/mvp2-*-evidence.json
             docs/mvp3-*-evidence.json
             docs/mvp4-*-evidence.json
+            docs/mvp5-*-evidence.json
       - name: Stop dedicated CI stack
         if: always()
         run: docker compose down

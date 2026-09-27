@@ -12,7 +12,8 @@ def compose(*args):
  if os.getenv('MVP4_BACKEND')=='kind':
   assert args[0] in ['stop','start'],args
   service=args[-1];prefix=['scripts/kubectl-local.sh','-n','network-mvp']
-  subprocess.run(prefix+['scale','deployment/'+service,'--replicas='+('0' if args[0]=='stop' else '1')],check=True,capture_output=True)
+  replicas=next(item['spec']['replicas'] for item in json.loads(Path('infra/k8s/applications.json').read_text())['items'] if item['kind']=='Deployment' and item['metadata']['name']==service)
+  subprocess.run(prefix+['scale','deployment/'+service,'--replicas='+('0' if args[0]=='stop' else str(replicas))],check=True,capture_output=True)
   if args[0]=='start':subprocess.run(prefix+['rollout','status','deployment/'+service,'--timeout=180s'],check=True,capture_output=True)
   else:subprocess.run(prefix+['wait','--for=delete','pod','-l','app='+service,'--timeout=90s'],check=True,capture_output=True)
  else:subprocess.run(['docker','compose',*args],check=True,capture_output=True)

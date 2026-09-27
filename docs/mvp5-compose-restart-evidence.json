@@ -1,0 +1,11 @@
+{
+  "backend": "compose",
+  "exactStatePreserved": [
+    "messages",
+    "read position/version",
+    "mute/archive/version",
+    "notification unread/count/cursor",
+    "messaging sync/cursor"
+  ],
+  "subsequentStreamProgress": true
+}

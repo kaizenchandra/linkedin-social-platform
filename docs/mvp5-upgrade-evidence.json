@@ -1,0 +1,27 @@
+{
+  "baselineTargets": {
+    "member": "7",
+    "content": "8",
+    "notification": "5",
+    "media": "2",
+    "messaging": "2",
+    "hiring": "11"
+  },
+  "preserved": [
+    "profiles",
+    "restricted posts",
+    "comments",
+    "likes",
+    "notification dedup",
+    "attached media",
+    "messages/read positions",
+    "company ownership",
+    "published job",
+    "application snapshots/cover note/status/history"
+  ],
+  "oldFollowsBookmarksSearchesMatchesPreserved": true,
+  "streamHistoryNotBackfilled": true,
+  "preferencesBackfilled": 2,
+  "readVersionsInitialized": true,
+  "isolatedSchemasRemoved": true
+}

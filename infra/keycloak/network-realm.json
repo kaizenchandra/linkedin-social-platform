@@ -84,6 +84,13 @@
       "attributes": {
         "include.in.token.scope": "true"
       }
+    },
+    {
+      "name": "messaging.notifications",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      }
     }
   ],
   "clients": [
@@ -176,7 +183,8 @@
       "directAccessGrantsEnabled": false,
       "defaultClientScopes": [
         "network-audience",
-        "hiring.recipients"
+        "hiring.recipients",
+        "messaging.notifications"
       ]
     }
   ]

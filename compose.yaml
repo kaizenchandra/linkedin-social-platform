@@ -107,7 +107,8 @@ services:
       retries: 40
     restart: unless-stopped
   member-service:
-    image: professional-network/member-service:0.4.0
+    stop_grace_period: 30s
+    image: professional-network/member-service:0.5.0
     build:
       context: .
       args:
@@ -155,7 +156,8 @@ services:
       start_period: 20s
     restart: unless-stopped
   content-service:
-    image: professional-network/content-service:0.4.0
+    stop_grace_period: 30s
+    image: professional-network/content-service:0.5.0
     build:
       context: .
       args:
@@ -203,18 +205,24 @@ services:
       start_period: 20s
     restart: unless-stopped
   notification-service:
-    image: professional-network/notification-service:0.4.0
+    stop_grace_period: 30s
+    image: professional-network/notification-service:0.5.0
     build:
       context: .
       args:
         MODULE: notification-service
     environment:
+      NETWORK_STREAM_MAX_CONNECTIONS: ${NETWORK_STREAM_MAX_CONNECTIONS:-32}
+      NETWORK_STREAM_PER_OWNER: ${NETWORK_STREAM_PER_OWNER:-3}
+      NETWORK_STREAM_LIFETIME_SECONDS: ${NETWORK_STREAM_LIFETIME_SECONDS:-120}
+      NETWORK_STREAM_RETENTION_HOURS: ${NETWORK_STREAM_RETENTION_HOURS:-24}
       OIDC_ISSUER: http://localhost:8180/realms/network
       OIDC_JWKS: http://keycloak:8080/realms/network/protocol/openid-connect/certs
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65
       MEMBER_URL: http://member-service:8080
       CONTENT_URL: http://content-service:8080
       HIRING_URL: http://hiring-service:8080
+      MESSAGING_URL: http://messaging-service:8080
       INTERNAL_CLIENT_ID: notification-internal
       INTERNAL_CLIENT_SECRET: ${NOTIFICATION_CLIENT_SECRET}
       NOTIFICATION_URL: http://notification-service:8080
@@ -253,7 +261,8 @@ services:
       start_period: 20s
     restart: unless-stopped
   api-gateway:
-    image: professional-network/api-gateway:0.4.0
+    stop_grace_period: 30s
+    image: professional-network/api-gateway:0.5.0
     build:
       context: .
       args:
@@ -299,7 +308,7 @@ services:
       start_period: 20s
     restart: unless-stopped
   member-migration:
-    image: professional-network/member-service:0.4.0
+    image: professional-network/member-service:0.5.0
     entrypoint:
     - java
     - -Dloader.main=dev.network.web.Migrate
@@ -315,7 +324,7 @@ services:
       oracle:
         condition: service_healthy
   content-migration:
-    image: professional-network/content-service:0.4.0
+    image: professional-network/content-service:0.5.0
     entrypoint:
     - java
     - -Dloader.main=dev.network.web.Migrate
@@ -331,7 +340,7 @@ services:
       oracle:
         condition: service_healthy
   notification-migration:
-    image: professional-network/notification-service:0.4.0
+    image: professional-network/notification-service:0.5.0
     entrypoint:
     - java
     - -Dloader.main=dev.network.web.Migrate
@@ -383,7 +392,8 @@ services:
       retries: 60
     restart: unless-stopped
   media-service:
-    image: professional-network/media-service:0.4.0
+    stop_grace_period: 30s
+    image: professional-network/media-service:0.5.0
     build:
       context: .
       args:
@@ -431,7 +441,7 @@ services:
       start_period: 20s
     restart: unless-stopped
   media-migration:
-    image: professional-network/media-service:0.4.0
+    image: professional-network/media-service:0.5.0
     entrypoint:
     - java
     - -Dloader.main=dev.network.web.Migrate
@@ -447,12 +457,17 @@ services:
       oracle:
         condition: service_healthy
   messaging-service:
-    image: professional-network/messaging-service:0.4.0
+    stop_grace_period: 30s
+    image: professional-network/messaging-service:0.5.0
     build:
       context: .
       args:
         MODULE: messaging-service
     environment:
+      NETWORK_STREAM_MAX_CONNECTIONS: ${NETWORK_STREAM_MAX_CONNECTIONS:-32}
+      NETWORK_STREAM_PER_OWNER: ${NETWORK_STREAM_PER_OWNER:-3}
+      NETWORK_STREAM_LIFETIME_SECONDS: ${NETWORK_STREAM_LIFETIME_SECONDS:-120}
+      NETWORK_STREAM_RETENTION_HOURS: ${NETWORK_STREAM_RETENTION_HOURS:-24}
       OIDC_ISSUER: http://localhost:8180/realms/network
       OIDC_JWKS: http://keycloak:8080/realms/network/protocol/openid-connect/certs
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65
@@ -497,7 +512,7 @@ services:
       start_period: 20s
     restart: unless-stopped
   messaging-migration:
-    image: professional-network/messaging-service:0.4.0
+    image: professional-network/messaging-service:0.5.0
     entrypoint:
     - java
     - -Dloader.main=dev.network.web.Migrate
@@ -513,7 +528,8 @@ services:
       oracle:
         condition: service_healthy
   hiring-service:
-    image: professional-network/hiring-service:0.4.0
+    stop_grace_period: 30s
+    image: professional-network/hiring-service:0.5.0
     build:
       context: .
       args:
@@ -562,7 +578,7 @@ services:
       start_period: 20s
     restart: unless-stopped
   hiring-migration:
-    image: professional-network/hiring-service:0.4.0
+    image: professional-network/hiring-service:0.5.0
     entrypoint:
     - java
     - -Dloader.main=dev.network.web.Migrate

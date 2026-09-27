@@ -16,8 +16,16 @@ import org.springframework.web.server.ResponseStatusException;
 public class NotificationController {
   private final NotificationRepository repo;
   private final Clock clock;
+  private final dev.network.web.stream.DurableStream history;
+  private final dev.network.web.stream.LiveStream live;
 
-  public NotificationController(NotificationRepository r, Clock c) {
+  public NotificationController(
+      NotificationRepository r,
+      Clock c,
+      dev.network.web.stream.DurableStream history,
+      dev.network.web.stream.LiveStream live) {
+    this.history = history;
+    this.live = live;
     repo = r;
     clock = c;
   }
@@ -54,9 +62,36 @@ public class NotificationController {
         repo.owned(id, jwt.getSubject())
             .orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Notification not found"));
-    if (n.readAt == null)
+    if (n.readAt == null) {
       n.readAt = clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MICROS);
+      history.append(
+          List.of(
+              new dev.network.web.stream.DurableStream.Update(
+                  jwt.getSubject(), "notification.read", n.id, 1)));
+    }
     return view(n);
+  }
+
+  @GetMapping("/sync")
+  public Map<String, Object> sync(@AuthenticationPrincipal Jwt jwt) {
+    String cursor = history.boundary(jwt.getSubject());
+    return Map.of(
+        "cursor",
+        cursor,
+        "unreadCount",
+        repo.countByRecipientIdAndReadAtIsNull(jwt.getSubject()),
+        "state",
+        list(jwt, 0, 100));
+  }
+
+  @GetMapping(value = "/stream", produces = "text/event-stream")
+  public void stream(
+      @AuthenticationPrincipal Jwt jwt,
+      @RequestHeader("Last-Event-ID") String cursor,
+      jakarta.servlet.http.HttpServletRequest request,
+      jakarta.servlet.http.HttpServletResponse response)
+      throws java.io.IOException {
+    live.open(jwt.getSubject(), jwt.getExpiresAt(), cursor, request, response);
   }
 
   private View view(Notification n) {

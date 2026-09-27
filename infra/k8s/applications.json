@@ -46,7 +46,7 @@
             "containers": [
               {
                 "name": "member-service",
-                "image": "professional-network/member-service:0.4.0",
+                "image": "professional-network/member-service:0.5.0",
                 "imagePullPolicy": "IfNotPresent",
                 "env": [
                   {
@@ -245,7 +245,7 @@
             "containers": [
               {
                 "name": "content-service",
-                "image": "professional-network/content-service:0.4.0",
+                "image": "professional-network/content-service:0.5.0",
                 "imagePullPolicy": "IfNotPresent",
                 "env": [
                   {
@@ -424,7 +424,7 @@
         }
       },
       "spec": {
-        "replicas": 1,
+        "replicas": 2,
         "strategy": {
           "type": "RollingUpdate",
           "rollingUpdate": {
@@ -457,7 +457,7 @@
             "containers": [
               {
                 "name": "notification-service",
-                "image": "professional-network/notification-service:0.4.0",
+                "image": "professional-network/notification-service:0.5.0",
                 "imagePullPolicy": "IfNotPresent",
                 "env": [
                   {
@@ -550,6 +550,26 @@
                         "key": "NOTIFICATION_CLIENT_SECRET"
                       }
                     }
+                  },
+                  {
+                    "name": "MESSAGING_URL",
+                    "value": "http://messaging-service:8080"
+                  },
+                  {
+                    "name": "NETWORK_STREAM_MAX_CONNECTIONS",
+                    "value": "32"
+                  },
+                  {
+                    "name": "NETWORK_STREAM_PER_OWNER",
+                    "value": "3"
+                  },
+                  {
+                    "name": "NETWORK_STREAM_LIFETIME_SECONDS",
+                    "value": "120"
+                  },
+                  {
+                    "name": "NETWORK_STREAM_RETENTION_HOURS",
+                    "value": "24"
                   }
                 ],
                 "ports": [
@@ -677,7 +697,7 @@
             "containers": [
               {
                 "name": "api-gateway",
-                "image": "professional-network/api-gateway:0.4.0",
+                "image": "professional-network/api-gateway:0.5.0",
                 "imagePullPolicy": "IfNotPresent",
                 "env": [
                   {
@@ -844,7 +864,7 @@
             "containers": [
               {
                 "name": "media-service",
-                "image": "professional-network/media-service:0.4.0",
+                "image": "professional-network/media-service:0.5.0",
                 "imagePullPolicy": "IfNotPresent",
                 "env": [
                   {
@@ -1041,7 +1061,7 @@
         }
       },
       "spec": {
-        "replicas": 1,
+        "replicas": 2,
         "strategy": {
           "type": "RollingUpdate",
           "rollingUpdate": {
@@ -1074,7 +1094,7 @@
             "containers": [
               {
                 "name": "messaging-service",
-                "image": "professional-network/messaging-service:0.4.0",
+                "image": "professional-network/messaging-service:0.5.0",
                 "imagePullPolicy": "IfNotPresent",
                 "env": [
                   {
@@ -1172,6 +1192,22 @@
                         "key": "MESSAGING_CLIENT_SECRET"
                       }
                     }
+                  },
+                  {
+                    "name": "NETWORK_STREAM_MAX_CONNECTIONS",
+                    "value": "32"
+                  },
+                  {
+                    "name": "NETWORK_STREAM_PER_OWNER",
+                    "value": "3"
+                  },
+                  {
+                    "name": "NETWORK_STREAM_LIFETIME_SECONDS",
+                    "value": "120"
+                  },
+                  {
+                    "name": "NETWORK_STREAM_RETENTION_HOURS",
+                    "value": "24"
                   }
                 ],
                 "ports": [
@@ -1299,7 +1335,7 @@
             "containers": [
               {
                 "name": "hiring-service",
-                "image": "professional-network/hiring-service:0.4.0",
+                "image": "professional-network/hiring-service:0.5.0",
                 "imagePullPolicy": "IfNotPresent",
                 "env": [
                   {

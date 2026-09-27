@@ -6,10 +6,10 @@
       "apiVersion": "batch/v1",
       "kind": "Job",
       "metadata": {
-        "name": "member-migration-mvp4",
+        "name": "member-migration-mvp5",
         "namespace": "network-mvp",
         "labels": {
-          "app": "member-migration-mvp4"
+          "app": "member-migration-mvp5"
         }
       },
       "spec": {
@@ -29,7 +29,7 @@
             "containers": [
               {
                 "name": "migration",
-                "image": "professional-network/member-service:0.4.0",
+                "image": "professional-network/member-service:0.5.0",
                 "imagePullPolicy": "IfNotPresent",
                 "command": [
                   "java",
@@ -89,10 +89,10 @@
       "apiVersion": "batch/v1",
       "kind": "Job",
       "metadata": {
-        "name": "content-migration-mvp4",
+        "name": "content-migration-mvp5",
         "namespace": "network-mvp",
         "labels": {
-          "app": "content-migration-mvp4"
+          "app": "content-migration-mvp5"
         }
       },
       "spec": {
@@ -112,7 +112,7 @@
             "containers": [
               {
                 "name": "migration",
-                "image": "professional-network/content-service:0.4.0",
+                "image": "professional-network/content-service:0.5.0",
                 "imagePullPolicy": "IfNotPresent",
                 "command": [
                   "java",
@@ -172,10 +172,10 @@
       "apiVersion": "batch/v1",
       "kind": "Job",
       "metadata": {
-        "name": "notification-migration-mvp4",
+        "name": "notification-migration-mvp5",
         "namespace": "network-mvp",
         "labels": {
-          "app": "notification-migration-mvp4"
+          "app": "notification-migration-mvp5"
         }
       },
       "spec": {
@@ -195,7 +195,7 @@
             "containers": [
               {
                 "name": "migration",
-                "image": "professional-network/notification-service:0.4.0",
+                "image": "professional-network/notification-service:0.5.0",
                 "imagePullPolicy": "IfNotPresent",
                 "command": [
                   "java",
@@ -255,10 +255,10 @@
       "apiVersion": "batch/v1",
       "kind": "Job",
       "metadata": {
-        "name": "kafka-acls-mvp4",
+        "name": "kafka-acls-mvp5",
         "namespace": "network-mvp",
         "labels": {
-          "app": "kafka-acls-mvp4"
+          "app": "kafka-acls-mvp5"
         }
       },
       "spec": {
@@ -344,10 +344,10 @@
       "apiVersion": "batch/v1",
       "kind": "Job",
       "metadata": {
-        "name": "media-migration-mvp4",
+        "name": "media-migration-mvp5",
         "namespace": "network-mvp",
         "labels": {
-          "app": "media-migration-mvp4"
+          "app": "media-migration-mvp5"
         }
       },
       "spec": {
@@ -367,7 +367,7 @@
             "containers": [
               {
                 "name": "media-migration",
-                "image": "professional-network/media-service:0.4.0",
+                "image": "professional-network/media-service:0.5.0",
                 "imagePullPolicy": "IfNotPresent",
                 "command": [
                   "java",
@@ -427,10 +427,10 @@
       "apiVersion": "batch/v1",
       "kind": "Job",
       "metadata": {
-        "name": "messaging-migration-mvp4",
+        "name": "messaging-migration-mvp5",
         "namespace": "network-mvp",
         "labels": {
-          "app": "messaging-migration-mvp4"
+          "app": "messaging-migration-mvp5"
         }
       },
       "spec": {
@@ -450,7 +450,7 @@
             "containers": [
               {
                 "name": "messaging-migration",
-                "image": "professional-network/messaging-service:0.4.0",
+                "image": "professional-network/messaging-service:0.5.0",
                 "imagePullPolicy": "IfNotPresent",
                 "command": [
                   "java",
@@ -510,10 +510,10 @@
       "apiVersion": "batch/v1",
       "kind": "Job",
       "metadata": {
-        "name": "hiring-migration-mvp4",
+        "name": "hiring-migration-mvp5",
         "namespace": "network-mvp",
         "labels": {
-          "app": "hiring-migration-mvp4"
+          "app": "hiring-migration-mvp5"
         }
       },
       "spec": {
@@ -533,7 +533,7 @@
             "containers": [
               {
                 "name": "hiring-migration",
-                "image": "professional-network/hiring-service:0.4.0",
+                "image": "professional-network/hiring-service:0.5.0",
                 "imagePullPolicy": "IfNotPresent",
                 "command": [
                   "java",

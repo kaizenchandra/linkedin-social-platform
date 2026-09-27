@@ -35,6 +35,15 @@ public class GatewayConfiguration {
       @Value("${HIRING_URL:http://localhost:8086}") String hiring) {
     return b.routes()
         .route(
+            "messaging-stream",
+            r ->
+                r.path("/api/v1/conversations/stream")
+                    .metadata("response-timeout", -1)
+                    .uri(messaging))
+        .route(
+            "notification-stream",
+            r -> r.path("/api/v1/notifications/stream").metadata("response-timeout", -1).uri(n))
+        .route(
             "hiring",
             r ->
                 r.path(
@@ -132,7 +141,7 @@ public class GatewayConfiguration {
     var cors = new CorsConfiguration();
     cors.setAllowedOrigins(List.of(origin));
     cors.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-    cors.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+    cors.setAllowedHeaders(List.of("Authorization", "Content-Type", "Last-Event-ID"));
     var source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", cors);
     return h.csrf(c -> c.disable())

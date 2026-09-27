@@ -1,0 +1,12 @@
+{
+  "twoInstances": "Both messaging and notification instances replay the same committed event to their connected device, through separate local gateways",
+  "messagingRestart": "Bounded stream close; another instance serves commands and replays missed state",
+  "notificationRestart": "Remaining consumer persists once; peer stream recovers from original cursor",
+  "gatewayRestart": "Gateway closes streams; REST through peer commits; original URL replays after restart",
+  "databaseInterruption": "Paused real Oracle closes stalled stream; readiness DOWN/503; committed history replays after unpause",
+  "brokerOutage": {
+    "businessCommitSeconds": 0.05449383300219779,
+    "liveMessageIndependentOfBroker": true,
+    "notificationRecovered": true
+  }
+}

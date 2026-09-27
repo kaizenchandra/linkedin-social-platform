@@ -21,7 +21,9 @@ public class ApiErrors {
   @ExceptionHandler({
     MethodArgumentNotValidException.class,
     HttpMessageNotReadableException.class,
-    IllegalArgumentException.class
+    IllegalArgumentException.class,
+    org.springframework.web.bind.ServletRequestBindingException.class,
+    org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class
   })
   ResponseEntity<ProblemDetail> invalid(Exception e) {
     return response(HttpStatus.BAD_REQUEST, "Invalid request parameters or body.");
@@ -30,6 +32,18 @@ public class ApiErrors {
   @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
   ResponseEntity<ProblemDetail> uploadTooLarge(Exception e) {
     return response(HttpStatus.PAYLOAD_TOO_LARGE, "Upload exceeds the configured limit.");
+  }
+
+  @ExceptionHandler({
+    org.springframework.dao.DataAccessResourceFailureException.class,
+    org.springframework.dao.CannotAcquireLockException.class,
+    org.springframework.dao.QueryTimeoutException.class,
+    org.springframework.transaction.CannotCreateTransactionException.class
+  })
+  ResponseEntity<ProblemDetail> unavailable(Exception e) {
+    return response(
+        HttpStatus.SERVICE_UNAVAILABLE,
+        "Persistence temporarily unavailable; retry the complete request.");
   }
 
   @ExceptionHandler(ResponseStatusException.class)

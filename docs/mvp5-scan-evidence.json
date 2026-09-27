@@ -1,0 +1,55 @@
+{
+  "tool": "Trivy0.74.0 (existing pinned digest)",
+  "scanners": [
+    "vuln"
+  ],
+  "severities": [
+    "HIGH",
+    "CRITICAL"
+  ],
+  "reports": [
+    {
+      "image": "professional-network/api-gateway:0.5.0",
+      "highCriticalFindings": 0,
+      "createdAt": "2026-09-27T11:09:33.249944844Z",
+      "report": ".local/scans/api-gateway.json"
+    },
+    {
+      "image": "professional-network/content-service:0.5.0",
+      "highCriticalFindings": 0,
+      "createdAt": "2026-09-27T11:09:24.656549916Z",
+      "report": ".local/scans/content-service.json"
+    },
+    {
+      "image": "professional-network/hiring-service:0.5.0",
+      "highCriticalFindings": 0,
+      "createdAt": "2026-09-27T11:09:47.457509447Z",
+      "report": ".local/scans/hiring-service.json"
+    },
+    {
+      "image": "professional-network/media-service:0.5.0",
+      "highCriticalFindings": 0,
+      "createdAt": "2026-09-27T11:09:37.719775792Z",
+      "report": ".local/scans/media-service.json"
+    },
+    {
+      "image": "professional-network/member-service:0.5.0",
+      "highCriticalFindings": 0,
+      "createdAt": "2026-09-27T11:09:19.251915861Z",
+      "report": ".local/scans/member-service.json"
+    },
+    {
+      "image": "professional-network/messaging-service:0.5.0",
+      "highCriticalFindings": 0,
+      "createdAt": "2026-09-27T11:09:42.703597128Z",
+      "report": ".local/scans/messaging-service.json"
+    },
+    {
+      "image": "professional-network/notification-service:0.5.0",
+      "highCriticalFindings": 0,
+      "createdAt": "2026-09-27T11:09:29.690486462Z",
+      "report": ".local/scans/notification-service.json"
+    }
+  ],
+  "scope": "OS and bundled dependency findings known to the executed scanner database; not proof of absence of vulnerabilities"
+}

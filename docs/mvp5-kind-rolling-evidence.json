@@ -1,0 +1,16 @@
+{
+  "messaging-service": {
+    "readyPodsBefore": 2,
+    "sameEventOnBothPods": true,
+    "terminatingConnectionClosed": true,
+    "gatewayReplaysOriginalPodCursor": true,
+    "replacementReady": true
+  },
+  "notification-service": {
+    "readyPodsBefore": 2,
+    "sameEventOnBothPods": true,
+    "terminatingConnectionClosed": true,
+    "gatewayReplaysOriginalPodCursor": true,
+    "replacementReady": true
+  }
+}

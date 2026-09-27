@@ -1,0 +1,11 @@
+{
+  "slowReader": {
+    "secondsToObservedDisconnectMetric": 15.47546095800135,
+    "actualReceiveBufferBytes": 1152,
+    "fixtureEvents": 5000,
+    "maxApplicationBatchBytes": 32768,
+    "path": "Direct Docker-network TCP client through gateway; no host-port proxy"
+  },
+  "expiredCursor": "Scheduled 24-hour retention yields410; authoritative state is preserved; fresh boundary receives new committed message",
+  "admission": "Fourth messaging stream rejected by service; six combined streams admitted; seventh rejected by gateway; REST remains available"
+}

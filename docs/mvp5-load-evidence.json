@@ -1,0 +1,64 @@
+{
+  "hardware": "macOS-27.0-arm64-arm-64bit-Mach-O Apple M3 Pro",
+  "hostMemoryBytes": 19327352832,
+  "dataset": {
+    "isolatedConversations": 1,
+    "newMessages": 20,
+    "authenticatedAccounts": 3
+  },
+  "replicas": {
+    "messaging": 2,
+    "notification": 2,
+    "gateway": 2
+  },
+  "concurrentConnections": 12,
+  "durationSeconds": 20.27265483300289,
+  "messageRatePerSecond": 0.9865506104035757,
+  "restLatency": {
+    "count": 40,
+    "p50Ms": 29.42343799804803,
+    "p95Ms": 79.65795899872319,
+    "maxMs": 253.2689580002625
+  },
+  "restAcknowledgementToObservedSecondsBoundary": "Lower bound on commit-to-observation, since commit precedes HTTP acknowledgement; sequential observation adds client scheduling delay",
+  "ackToObserved": {
+    "count": 40,
+    "p50Ms": 584.9391044994263,
+    "p95Ms": 984.9626249997527,
+    "maxMs": 1052.2411670026486
+  },
+  "eventCreationToObserved": {
+    "count": 40,
+    "p50Ms": 591.158390045166,
+    "p95Ms": 990.9079074859619,
+    "maxMs": 1059.5080852508545
+  },
+  "creationBoundary": "Upper bound on commit-to-observation on this local clock; occurredAt is assigned before commit",
+  "errors": 0,
+  "containers": [
+    {
+      "name": "professional-network-mvp-messaging-service-1",
+      "cpu": "6.36%",
+      "memory": "435.8MiB / 640MiB",
+      "pids": "61"
+    },
+    {
+      "name": "pn-mvp5-messaging-service-9743ae9f",
+      "cpu": "4.50%",
+      "memory": "415.7MiB / 640MiB",
+      "pids": "57"
+    },
+    {
+      "name": "professional-network-mvp-notification-service-1",
+      "cpu": "3.67%",
+      "memory": "483.6MiB / 640MiB",
+      "pids": "63"
+    },
+    {
+      "name": "pn-mvp5-notification-service-9743ae9f",
+      "cpu": "1.98%",
+      "memory": "410MiB / 640MiB",
+      "pids": "63"
+    }
+  ]
+}

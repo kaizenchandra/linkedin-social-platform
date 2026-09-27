@@ -231,4 +231,88 @@ class OracleNotificationIT {
     consumer.consume(json.writeValueAsString(e));
     assertThat(notifications.countByEventId((String) e.get("eventId"))).isZero();
   }
+
+  @Autowired dev.network.web.stream.DurableStream stream;
+  @Autowired org.springframework.transaction.PlatformTransactionManager transactions;
+
+  @Test
+  void notificationReplayMuteFailureAndConcurrentReadAreAtomic() throws Exception {
+    String actor = UUID.randomUUID().toString(),
+        owner = UUID.randomUUID().toString(),
+        id = UUID.randomUUID().toString();
+    String before = stream.boundary(owner);
+    var event = new HashMap<String, Object>();
+    event.put("eventId", id);
+    event.put("eventType", "message.sent");
+    event.put("schemaVersion", 1);
+    event.put("occurredAt", java.time.Instant.now().toString());
+    event.put("aggregateId", UUID.randomUUID().toString());
+    event.put("aggregateVersion", 1);
+    event.put("producer", "messaging-service");
+    event.put("correlationId", id);
+    event.put("causationId", id);
+    event.put("payload", Map.of("actorId", actor, "recipientId", owner));
+    org.mockito.Mockito.when(
+            http.post(
+                org.mockito.ArgumentMatchers.endsWith("/notification-eligibility"),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.eq(
+                    dev.network.notification.events.NotificationConsumer.MessageEligibility.class)))
+        .thenThrow(new IllegalStateException("Authority unavailable"));
+    assertThatThrownBy(() -> consumer.consume(json.writeValueAsString(event)))
+        .isInstanceOf(IllegalStateException.class);
+    assertThat(
+            db.queryForObject(
+                "SELECT COUNT(*) FROM consumed_events WHERE event_id=?", Long.class, id))
+        .isZero();
+    assertThat(stream.replay(owner, before, 50)).isEmpty();
+    org.mockito.Mockito.when(
+            http.post(
+                org.mockito.ArgumentMatchers.endsWith("/notification-eligibility"),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.eq(
+                    dev.network.notification.events.NotificationConsumer.MessageEligibility.class)))
+        .thenReturn(
+            new dev.network.notification.events.NotificationConsumer.MessageEligibility(false));
+    consumer.consume(json.writeValueAsString(event));
+    assertThat(notifications.countByEventId(id)).isZero();
+    assertThat(stream.replay(owner, before, 50)).isEmpty();
+    event.put("eventId", UUID.randomUUID().toString());
+    org.mockito.Mockito.when(
+            http.post(
+                org.mockito.ArgumentMatchers.endsWith("/notification-eligibility"),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.eq(
+                    dev.network.notification.events.NotificationConsumer.MessageEligibility.class)))
+        .thenReturn(
+            new dev.network.notification.events.NotificationConsumer.MessageEligibility(true));
+    new org.springframework.transaction.support.TransactionTemplate(transactions)
+        .executeWithoutResult(
+            status -> {
+              consumer.consume(json.writeValueAsString(event));
+              status.setRollbackOnly();
+            });
+    assertThat(stream.replay(owner, before, 50)).isEmpty();
+    assertThat(notifications.countByEventId((String) event.get("eventId"))).isZero();
+    consumer.consume(json.writeValueAsString(event));
+    consumer.consume(json.writeValueAsString(event));
+    var created = stream.replay(owner, before, 50);
+    assertThat(created).hasSize(1);
+    assertThat(created.getFirst().eventType()).isEqualTo("notification.created");
+    var principal =
+        org.springframework.security.oauth2.jwt.Jwt.withTokenValue("fixture")
+            .header("alg", "fixture")
+            .subject(owner)
+            .build();
+    assertThat(notifications.countByRecipientIdAndReadAtIsNull(owner)).isEqualTo(1);
+    try (var pool = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+      var first = pool.submit(() -> inbox.read(principal, created.getFirst().resourceId()));
+      var second = pool.submit(() -> inbox.read(principal, created.getFirst().resourceId()));
+      assertThat(first.get().readAt()).isEqualTo(second.get().readAt());
+    }
+    assertThat(notifications.countByRecipientIdAndReadAtIsNull(owner)).isZero();
+    assertThat(stream.replay(owner, created.getFirst().cursor(), 50))
+        .extracting(dev.network.web.stream.DurableStream.Event::eventType)
+        .containsExactly("notification.read");
+  }
 }

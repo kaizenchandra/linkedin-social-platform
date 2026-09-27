@@ -1,6 +1,8 @@
 # Current release
 
-MVP-4 / 0.4.0: implementation, Compose and retained kind deployment verification passed. See [current checkpoint](mvp4-progress.md), [acceptance plan](mvp4-plan.md), and [executed evidence](mvp4-verification.md).
+MVP-5 / 0.5.0: phases0–6 locally verified, including two-pod replay, populated upgrades and isolated backup/restore. See [current checkpoint](mvp5-progress.md), [acceptance plan](mvp5-plan.md), and [executed evidence](mvp5-verification.md).
+
+MVP-4 /0.4.0 remains the verified previous release: [evidence](mvp4-verification.md).
 
 # MVP-3 historical checkpoint
 

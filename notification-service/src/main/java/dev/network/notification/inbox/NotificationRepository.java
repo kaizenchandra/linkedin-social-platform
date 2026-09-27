@@ -12,5 +12,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Stri
   @Query("select n from Notification n where n.id=:id and n.recipientId=:recipient")
   Optional<Notification> owned(String id, String recipient);
 
+  long countByRecipientIdAndReadAtIsNull(String recipient);
+
   long countByEventId(String eventId);
 }

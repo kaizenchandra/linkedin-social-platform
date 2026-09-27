@@ -1,0 +1,132 @@
+{
+  "traceId": "2fde73724a73b88f8e576da1ea8741ec",
+  "services": [
+    "api-gateway",
+    "hiring-service",
+    "member-service",
+    "messaging-service",
+    "notification-service"
+  ],
+  "matchedCommittedOutboxTraceParent": true,
+  "network_stream_active": [
+    {
+      "labels": {
+        "__name__": "network_stream_active",
+        "application": "messaging-service",
+        "instance": "messaging-service:9090",
+        "job": "network-services"
+      },
+      "value": "3"
+    },
+    {
+      "labels": {
+        "__name__": "network_stream_active",
+        "application": "notification-service",
+        "instance": "notification-service:9090",
+        "job": "network-services"
+      },
+      "value": "3"
+    }
+  ],
+  "network_stream_events_persisted_total": [
+    {
+      "labels": {
+        "__name__": "network_stream_events_persisted_total",
+        "application": "notification-service",
+        "instance": "notification-service:9090",
+        "job": "network-services"
+      },
+      "value": "20"
+    },
+    {
+      "labels": {
+        "__name__": "network_stream_events_persisted_total",
+        "application": "messaging-service",
+        "instance": "messaging-service:9090",
+        "job": "network-services"
+      },
+      "value": "31"
+    }
+  ],
+  "network_stream_events_emitted_total": [
+    {
+      "labels": {
+        "__name__": "network_stream_events_emitted_total",
+        "application": "messaging-service",
+        "instance": "messaging-service:9090",
+        "job": "network-services"
+      },
+      "value": "32"
+    },
+    {
+      "labels": {
+        "__name__": "network_stream_events_emitted_total",
+        "application": "notification-service",
+        "instance": "notification-service:9090",
+        "job": "network-services"
+      },
+      "value": "10"
+    }
+  ],
+  "network_stream_replay_requests_total": [
+    {
+      "labels": {
+        "__name__": "network_stream_replay_requests_total",
+        "application": "messaging-service",
+        "instance": "messaging-service:9090",
+        "job": "network-services"
+      },
+      "value": "158"
+    },
+    {
+      "labels": {
+        "__name__": "network_stream_replay_requests_total",
+        "application": "notification-service",
+        "instance": "notification-service:9090",
+        "job": "network-services"
+      },
+      "value": "89"
+    }
+  ],
+  "network_stream_emission_lag_seconds_count": [
+    {
+      "labels": {
+        "__name__": "network_stream_emission_lag_seconds_count",
+        "application": "messaging-service",
+        "instance": "messaging-service:9090",
+        "job": "network-services"
+      },
+      "value": "32"
+    },
+    {
+      "labels": {
+        "__name__": "network_stream_emission_lag_seconds_count",
+        "application": "notification-service",
+        "instance": "notification-service:9090",
+        "job": "network-services"
+      },
+      "value": "10"
+    }
+  ],
+  "network_stream_oldest_pending_seconds": [
+    {
+      "labels": {
+        "__name__": "network_stream_oldest_pending_seconds",
+        "application": "messaging-service",
+        "instance": "messaging-service:9090",
+        "job": "network-services"
+      },
+      "value": "0"
+    },
+    {
+      "labels": {
+        "__name__": "network_stream_oldest_pending_seconds",
+        "application": "notification-service",
+        "instance": "notification-service:9090",
+        "job": "network-services"
+      },
+      "value": "0"
+    }
+  ],
+  "privateBodyAbsentFromLogsAndTrace": true
+}

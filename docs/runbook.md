@@ -256,3 +256,62 @@ python3 scripts/check-mvp4-kind-release.py  # dedicated retained cluster; restor
 ```
 
 Use requests/mvp4.http in IntelliJ. Long test runs should refresh supported test sessions, not extend token lifetime. Enable the optional observability Compose file before `check-mvp4-telemetry.py`; basic Compose deliberately has no trace agent. Kind uses uniquely named MVP-4 migration/ACL jobs and seven0.4.0 images. Stop Compose before starting the retained dedicated kind node to release8080/8180; never stop unrelated listeners. `MVP4_BACKEND=kind python3 scripts/smoke-mvp4.py` runs the gateway journey and its notification restart using the dedicated kubeconfig. These remain single-node development deployments.
+
+## MVP-5 upgrade and operations
+
+Release0.5.0 preserves the seven services, REST/polling and existing secrets. On a populated MVP-4 stack use a maintenance window so older message writers cannot bypass replay history/preferences:
+
+```sh
+python3 scripts/verify-oracle-local.py
+docker compose stop api-gateway member-service content-service notification-service media-service messaging-service hiring-service
+# Build verified artifacts first; this command does not run images from source.
+docker compose build
+python3 scripts/upgrade-mvp5.py             # existing local Keycloak; narrow notification service scope
+for service in messaging notification; do docker compose run --rm "$service-migration"; done
+docker compose up -d --wait --wait-timeout 240
+python3 scripts/auth-hiring-setup.py
+python3 scripts/check-mvp5-messaging.py
+python3 scripts/auth-hiring-setup.py
+python3 scripts/check-mvp5-controls.py
+```
+
+Messaging migrationsV3/V4 add owner history, private mute/archive defaults and read versions; notificationV6/V7 adds owner history and unread index. Other schemas stay at their MVP-4 versions. Existing conversations get two unmuted/unarchived preferences; old read positions remain. Historical messages/notifications are obtained through synchronization, not synthetic history backfill. `notification-internal` receives only the new `messaging.notifications` scope for current mute checks. Interactive tokens cannot use the internal endpoint.
+
+Both stream routes require Authorization plus Last-Event-ID. Obtain the initial cursor from `/api/v1/conversations/sync` or `/api/v1/notifications/sync`.410 requires state resynchronization;401 requires renewed PKCE credentials. Streams close at token expiry or120s; no immediate JWT revocation claim. Native browser EventSource cannot set this header: use the fetch client at localhost3000 (`python3 -m http.server 3000 --directory tools/realtime`). It stores tokens/cursors only in memory and clears state when account changes. For IntelliJ, run `TEST_SESSION=.local/hiring-session.json python3 scripts/http-env.py` after the messaging fixture, choose `local`, then use requests/mvp5.http; sync before switching accounts. See realtime-protocol.md for finite retention, conservative snapshot boundary and replay deduplication.
+
+Configure `NETWORK_STREAM_MAX_CONNECTIONS` (default32, max128), `NETWORK_STREAM_PER_OWNER` (3), `NETWORK_STREAM_LIFETIME_SECONDS` (120, max300), `NETWORK_STREAM_RETENTION_HOURS` (24) on each owning service. Gateway limits64/instance and6/owner. All admission limits are instance-local. Two polling threads and32 queued tasks per service are bounded; increasing admission requires measuring DB/poll latency, not just raising a number. Two stream replicas plus the four remaining business replicas use8×8=64 maximum pooled database connections; rolling surge and migrations require additional headroom. Local kind runs two messaging and two notification pods; no sticky sessions are required.
+
+Gateway applies no response aggregation or caching on SSE routes, and has a five-second client write deadline. A proxy in front must disable buffering/compression for those paths, pass text/event-stream, and set idle timeout above the10s heartbeat. Terminate TLS at the controlled production edge and use trusted private transport or TLS internally; local loopback HTTP is not a production TLS setup. Compose gives30s and kind35s termination grace around Boot's25s shutdown window. A terminating instance refuses new streams and closes active transport; clients replay elsewhere. DB failures close streams and readiness reports DOWN, independently of liveness.
+
+Mute lookup failure rolls back notification/dedup writes and uses existing bounded Kafka retries/DLT. Repair the authority and replay the original envelope/eventId/aggregate key to `network.events.v1`. Do not replay with new event IDs. A successful eligibility lookup is the documented cross-service race boundary; later mute cannot recall already authorized or delivered notes. Muting does not affect message streams, archive or read positions.
+
+```sh
+# Quick gateway journey; adds real token expiry at the end.
+python3 scripts/smoke-mvp5.py
+# Dedicated local fixture tests; each setup creates isolated test identities.
+for check in check-mvp5-failures check-mvp5-limits check-mvp5-mute-recovery check-mvp5-contracts load-mvp5; do
+  python3 scripts/auth-hiring-setup.py
+  .local/venv/bin/python scripts/$check.py
+done
+python3 scripts/check-mvp5-expiry.py
+node scripts/check-realtime-client.cjs
+python3 scripts/check-mvp5-upgrade.py
+python3 scripts/check-mvp5-fresh-compose.py
+python3 scripts/check-mvp5-kind-release.py
+```
+
+The limits test requires the optional Prometheus profile. Its Java21 stopped-reader probe runs directly on the Docker network because Docker Desktop's host-port proxy can mask TCP backpressure. It copies/removes only its named temporary class. Fresh Compose uses a uniquely named disposable project and removes only its own volumes; original stack and sessions are restored. Kind release uses only the retained `professional-network-mvp` cluster and `.local/kubeconfig`, upgrades existing PVCs, verifies two-pod reconnect, then stops the node and restores Compose. Ports8080/8180 cannot be shared with the two environments simultaneously.
+
+Back up both owning schemas including stream_heads/events and preference/read-version columns as part of the existing six-schema consistent Oracle export. Restore them together with business state: partial history/head restore can invalidate replay boundaries. A coordinated restore may require clients to discard cursors and synchronize. Replay retention24h is independent of business or backup retention. Existing backup tooling includes new tables automatically; never claim erasure from pruning stream history. Application rollback does not remove additive columns, restore discarded replay history, or make older writers safe. Prefer a forward fix; coordinated pre-upgrade restore loses later business writes. Do not run0.4 writers/consumers concurrently with0.5 live traffic.
+
+MVP-5 backup verification must run with application writers/retention workers stopped. The following restores applications even if the isolated restore check fails; use the same optional Compose-file arguments as your running stack when restoring observability:
+
+```sh
+(
+  trap 'docker compose up -d --wait --wait-timeout 240' EXIT
+  docker compose stop api-gateway member-service content-service notification-service media-service messaging-service hiring-service
+  python3 scripts/check-mvp5-backup.py
+)
+```
+
+This test remaps a consistent six-schema Data Pump export into fresh temporary schemas, compares all table counts plus message text/read positions, replay heads/history, preference versions and prior-release data, and drops only those temporary schemas. It never overwrites original schemas. The dump remains under the existing Oracle backup retention policy; it is not a deletion/erasure mechanism.

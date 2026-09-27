@@ -1,0 +1,14 @@
+{
+  "project": "pn-mvp5-fresh-e6e2b5f2",
+  "freshVolumes": true,
+  "migrations": "all six service schemas",
+  "gatewayJourneys": [
+    "MVP-1",
+    "MVP-2",
+    "MVP-3",
+    "MVP-4",
+    "MVP-5"
+  ],
+  "originalVolumesPreserved": true,
+  "disposableVolumesRemoved": true
+}

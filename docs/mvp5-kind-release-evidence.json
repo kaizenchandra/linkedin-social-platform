@@ -1,0 +1,32 @@
+{
+  "cluster": "professional-network-mvp",
+  "namespace": "network-mvp",
+  "serverValidatedResources": 37,
+  "readyApplications": {
+    "api-gateway": "professional-network/api-gateway:0.5.0",
+    "content-service": "professional-network/content-service:0.5.0",
+    "hiring-service": "professional-network/hiring-service:0.5.0",
+    "media-service": "professional-network/media-service:0.5.0",
+    "member-service": "professional-network/member-service:0.5.0",
+    "messaging-service": "professional-network/messaging-service:0.5.0",
+    "notification-service": "professional-network/notification-service:0.5.0"
+  },
+  "gatewayJourneys": [
+    "MVP-1",
+    "MVP-2",
+    "MVP-3",
+    "MVP-4",
+    "MVP-5"
+  ],
+  "rollingRestartVerified": [
+    "member-service",
+    "content-service",
+    "notification-service",
+    "media-service",
+    "messaging-service",
+    "hiring-service",
+    "api-gateway"
+  ],
+  "existingPVCsPreserved": true,
+  "nodeStoppedOnExit": true
+}

@@ -1,0 +1,5 @@
+{
+  "authorityOutage": "bounded retries and DLT; no notification or committed dedup",
+  "repairedReplay": "same event ID commits notification and replay history once",
+  "duplicateReplay": "positive partition barrier; one durable stream event"
+}

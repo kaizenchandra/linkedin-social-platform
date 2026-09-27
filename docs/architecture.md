@@ -144,3 +144,28 @@ sequenceDiagram
 ```
 
 Saved-search changes and publications serialize through an epoch row; no historical matching. Match creation serializes with disabling/deletion through a member row. Notification delivery's successful remote eligibility check is the explicit cross-service cancellation race boundary. See discovery-and-alert-semantics.md and ADR012.
+
+## MVP-5 live updates
+
+Messaging and notification each own an Oracle replay head/history, transactional business invalidations and independent authenticated SSE transport. REST commands and reads remain authoritative. Message preference/read state stays in messaging. Notification creation checks current mute through its scoped internal API before committing. Gateway owns only admission and bounded streaming transport. See ADR013 and realtime-protocol.md.
+
+```mermaid
+sequenceDiagram
+ participant D as Device
+ participant G as Gateway
+ participant M as Messaging instance
+ participant O as Messaging Oracle
+ participant N as Notification
+ D->>G: REST send / explicit read / preference command
+ G->>M: JWT authenticated command
+ M->>O: Lock conversation + sorted owner heads
+ M->>O: Business + replay history + outbox commit
+ D->>G: SSE with JWT and owner cursor
+ G->>M: Independent instance can serve replay
+ M->>O: Bounded owner replay polling
+ M-->>D: Minimal invalidation; no read side effect
+ M-->>N: Kafka outbox event
+ N->>M: Scoped current mute eligibility
+ N->>N: Dedup + notification + owner history commit
+ N-->>D: Independent notification stream
+```

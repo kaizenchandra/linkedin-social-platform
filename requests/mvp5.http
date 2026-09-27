@@ -1,0 +1,66 @@
+### Run auth-hiring-setup + check-mvp5-messaging, then:
+### TEST_SESSION=.local/hiring-session.json python3 scripts/http-env.py
+### Choose local. Tokens exist only in the ignored private environment. Always sync after switching accounts.
+@base = http://localhost:8080
+
+### Obtain conservative snapshot boundary before opening each independent stream.
+GET {{base}}/api/v1/conversations/sync
+Authorization: Bearer {{aliceToken}}
+
+> {% client.global.set("messaging_cursor", response.body.cursor); %}
+
+### Copy cursor from sync or last event. Heartbeats do not advance it.
+GET {{base}}/api/v1/conversations/stream
+Authorization: Bearer {{aliceToken}}
+Last-Event-ID: {{messaging_cursor}}
+Accept: text/event-stream
+
+### Notification snapshot/count and independent stream cursor
+GET {{base}}/api/v1/notifications/sync
+Authorization: Bearer {{aliceToken}}
+
+> {% client.global.set("notification_cursor", response.body.cursor); %}
+
+### 410 means re-synchronize; 401 means refresh via PKCE before reconnect.
+GET {{base}}/api/v1/notifications/stream
+Authorization: Bearer {{aliceToken}}
+Last-Event-ID: {{notification_cursor}}
+Accept: text/event-stream
+
+### My private preferences; idempotent, does not mark read.
+PATCH {{base}}/api/v1/conversations/{{conversation_id}}/preferences
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{"muted":true,"archived":true}
+
+### Archived conversations remain readable; next new message unarchives participants.
+GET {{base}}/api/v1/conversations?archived=true&size=50
+Authorization: Bearer {{aliceToken}}
+
+### Explicit monotonic read position; syncs only my devices.
+PUT {{base}}/api/v1/conversations/{{conversation_id}}/read
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{"messageId":"{{message_id}}"}
+
+### B sends through REST; both A devices receive only an invalidation.
+POST {{base}}/api/v1/conversations/{{conversation_id}}/messages
+Authorization: Bearer {{bobToken}}
+Content-Type: application/json
+
+{"clientMessageId":"{{$uuid}}","body":"Local live update verification"}
+
+> {% client.global.set("message_id", response.body.id); %}
+
+### Select one of my durable notifications; target content still requires its own authorized API.
+GET {{base}}/api/v1/notifications?size=20
+Authorization: Bearer {{aliceToken}}
+
+> {% if (response.body.length) client.global.set("notification_id", response.body[0].id); %}
+
+### Explicit notification read; does not depend on socket delivery.
+PUT {{base}}/api/v1/notifications/{{notification_id}}/read
+Authorization: Bearer {{aliceToken}}
+

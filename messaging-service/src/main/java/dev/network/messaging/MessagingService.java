@@ -22,15 +22,18 @@ public class MessagingService {
   private final Clock clock;
   private final TransactionTemplate tx;
   private final String memberUrl;
+  private final dev.network.web.stream.DurableStream stream;
 
   public MessagingService(
       JdbcTemplate db,
+      dev.network.web.stream.DurableStream stream,
       ServiceHttp http,
       EventWriter events,
       Clock clock,
       org.springframework.transaction.PlatformTransactionManager tm,
       @Value("${MEMBER_URL:http://localhost:8081}") String memberUrl) {
     this.db = db;
+    this.stream = stream;
     this.http = http;
     this.events = events;
     this.clock = clock;
@@ -47,7 +50,11 @@ public class MessagingService {
       long lastSequence,
       long readPosition,
       long unreadCount,
-      Instant createdAt) {}
+      Instant createdAt,
+      long readVersion,
+      boolean muted,
+      boolean archived,
+      long preferenceVersion) {}
 
   public record Message(
       String id,
@@ -59,7 +66,15 @@ public class MessagingService {
       Instant createdAt) {}
 
   private record Pair(
-      String id, String low, String high, long last, long lowRead, long highRead, Instant created) {
+      String id,
+      String low,
+      String high,
+      long last,
+      long lowRead,
+      long highRead,
+      Instant created,
+      long lowVersion,
+      long highVersion) {
     boolean participant(String actor) {
       return actor.equals(low) || actor.equals(high);
     }
@@ -82,7 +97,9 @@ public class MessagingService {
               r.getLong("last_sequence"),
               r.getLong("low_read"),
               r.getLong("high_read"),
-              r.getTimestamp("created_at").toInstant());
+              r.getTimestamp("created_at").toInstant(),
+              r.getLong("low_read_version"),
+              r.getLong("high_read_version"));
   private static final RowMapper<Message> MESSAGE =
       (r, n) ->
           new Message(
@@ -136,15 +153,28 @@ public class MessagingService {
     if (!existing.isEmpty()) return view(existing.getFirst(), actor);
     try {
       tx.executeWithoutResult(
-          s ->
+          status -> {
+            String id = UUID.randomUUID().toString();
+            db.update(
+                "INSERT INTO"
+                    + " conversations(id,low_id,high_id,last_sequence,low_read,high_read,created_at)"
+                    + " VALUES(?,?,?,0,0,0,?)",
+                id,
+                low,
+                high,
+                java.sql.Timestamp.from(now()));
+            for (String owner : List.of(low, high))
               db.update(
-                  "INSERT INTO"
-                      + " conversations(id,low_id,high_id,last_sequence,low_read,high_read,created_at)"
-                      + " VALUES(?,?,?,0,0,0,?)",
-                  UUID.randomUUID().toString(),
-                  low,
-                  high,
-                  java.sql.Timestamp.from(now())));
+                  "INSERT INTO conversation_preferences(conversation_id,member_id) VALUES(?,?)",
+                  id,
+                  owner);
+            stream.append(
+                List.of(
+                    new dev.network.web.stream.DurableStream.Update(
+                        low, "conversation.created", id, 0),
+                    new dev.network.web.stream.DurableStream.Update(
+                        high, "conversation.created", id, 0)));
+          });
     } catch (DataIntegrityViolationException race) {
       if (db.queryForObject(
               "SELECT COUNT(*) FROM conversations WHERE low_id=? AND high_id=?",
@@ -206,6 +236,22 @@ public class MessagingService {
         sequence,
         body,
         java.sql.Timestamp.from(message.createdAt()));
+    var updates = new ArrayList<dev.network.web.stream.DurableStream.Update>();
+    for (String owner : List.of(p.low, p.high)) {
+      int changed =
+          db.update(
+              "UPDATE conversation_preferences SET archived=0,version=version+1 WHERE"
+                  + " conversation_id=? AND member_id=? AND archived=1",
+              id,
+              owner);
+      if (changed == 1)
+        updates.add(
+            new dev.network.web.stream.DurableStream.Update(
+                owner, "conversation.preferences", id, preference(id, owner).version()));
+      updates.add(
+          new dev.network.web.stream.DurableStream.Update(owner, "message.created", id, sequence));
+    }
+    stream.append(updates);
     events.write("message.sent", id, sequence, actor, p.other(actor));
     return message;
   }
@@ -240,7 +286,25 @@ public class MessagingService {
     if (rows.isEmpty()) throw missing();
     long position = Math.max(p.read(actor), rows.getFirst());
     String column = actor.equals(p.low) ? "low_read" : "high_read";
-    db.update("UPDATE conversations SET " + column + "=? WHERE id=?", position, id);
+    if (position > p.read(actor)) {
+      db.update(
+          "UPDATE conversations SET "
+              + column
+              + "=?,"
+              + column
+              + "_version="
+              + column
+              + "_version+1 WHERE id=?",
+          position,
+          id);
+      stream.append(
+          List.of(
+              new dev.network.web.stream.DurableStream.Update(
+                  actor,
+                  "conversation.read",
+                  id,
+                  (actor.equals(p.low) ? p.lowVersion : p.highVersion) + 1)));
+    }
     return view(pair(actor, id, false), actor);
   }
 
@@ -251,6 +315,12 @@ public class MessagingService {
 
   @Transactional(readOnly = true)
   public Pages.Slice<Conversation> list(String actor, String cursor, int size) {
+    return list(actor, cursor, size, false, false);
+  }
+
+  @Transactional(readOnly = true)
+  public Pages.Slice<Conversation> list(
+      String actor, String cursor, int size, boolean archived, boolean all) {
     int limit = Pages.size(size);
     Instant before = now().plusSeconds(1);
     String last = "~";
@@ -269,16 +339,31 @@ public class MessagingService {
     }
     var rows =
         db.query(
-            "SELECT c.*, (SELECT COUNT(*) FROM messages m WHERE m.conversation_id=c.id AND"
-                + " m.sender_id<>? AND m.sequence_number>CASE WHEN c.low_id=? THEN c.low_read ELSE"
-                + " c.high_read END) unread FROM conversations c WHERE (low_id=? OR high_id=?) AND"
-                + " (created_at<? OR (created_at=? AND id<?)) ORDER BY created_at DESC,id DESC"
+            "SELECT c.*, pref.muted,pref.archived,pref.version AS preference_version, (SELECT"
+                + " COUNT(*) FROM messages m WHERE m.conversation_id=c.id AND m.sender_id<>? AND"
+                + " m.sequence_number>CASE WHEN c.low_id=? THEN c.low_read ELSE c.high_read END)"
+                + " unread FROM conversations c JOIN conversation_preferences pref ON"
+                + " pref.conversation_id=c.id AND pref.member_id=? WHERE (low_id=? OR high_id=?)"
+                + " AND (c.created_at<? OR (c.created_at=? AND c.id<?))"
+                + (all ? "" : " AND pref.archived=" + (archived ? 1 : 0))
+                + " ORDER BY c.created_at DESC,c.id DESC"
                 + " FETCH FIRST ? ROWS ONLY",
             (r, n) -> {
               var p = PAIR.mapRow(r, n);
               return new Conversation(
-                  p.id, p.low, p.high, p.last, p.read(actor), r.getLong("unread"), p.created);
+                  p.id,
+                  p.low,
+                  p.high,
+                  p.last,
+                  p.read(actor),
+                  r.getLong("unread"),
+                  p.created,
+                  actor.equals(p.low) ? p.lowVersion : p.highVersion,
+                  r.getInt("muted") == 1,
+                  r.getInt("archived") == 1,
+                  r.getLong("preference_version"));
             },
+            actor,
             actor,
             actor,
             actor,
@@ -310,7 +395,73 @@ public class MessagingService {
             p.id,
             actor,
             p.read(actor));
-    return new Conversation(p.id, p.low, p.high, p.last, p.read(actor), unread, p.created);
+    var pref = preference(p.id, actor);
+    return new Conversation(
+        p.id,
+        p.low,
+        p.high,
+        p.last,
+        p.read(actor),
+        unread,
+        p.created,
+        actor.equals(p.low) ? p.lowVersion : p.highVersion,
+        pref.muted(),
+        pref.archived(),
+        pref.version());
+  }
+
+  public record Preference(boolean muted, boolean archived, long version) {}
+
+  private Preference preference(String id, String actor) {
+    return db.queryForObject(
+        "SELECT muted,archived,version FROM conversation_preferences WHERE conversation_id=? AND"
+            + " member_id=?",
+        (r, n) -> new Preference(r.getInt(1) == 1, r.getInt(2) == 1, r.getLong(3)),
+        id,
+        actor);
+  }
+
+  @Transactional
+  public Conversation preferences(String actor, String id, Boolean muted, Boolean archived) {
+    if (muted == null && archived == null)
+      throw new IllegalArgumentException("At least one preference required");
+    var p = pair(actor, id, true);
+    var old = preference(id, actor);
+    boolean m = muted == null ? old.muted() : muted,
+        a = archived == null ? old.archived() : archived;
+    if (m != old.muted() || a != old.archived()) {
+      db.update(
+          "UPDATE conversation_preferences SET muted=?,archived=?,version=version+1 WHERE"
+              + " conversation_id=? AND member_id=?",
+          m ? 1 : 0,
+          a ? 1 : 0,
+          id,
+          actor);
+      stream.append(
+          List.of(
+              new dev.network.web.stream.DurableStream.Update(
+                  actor, "conversation.preferences", id, old.version() + 1)));
+    }
+    return view(p, actor);
+  }
+
+  @Transactional(readOnly = true)
+  public boolean notificationAllowed(String actor, String id) {
+    var rows = db.query("SELECT * FROM conversations WHERE id=?", PAIR, id);
+    return !rows.isEmpty() && rows.getFirst().participant(actor) && !preference(id, actor).muted();
+  }
+
+  @Transactional(readOnly = true)
+  public long unread(String actor) {
+    return db.queryForObject(
+        "SELECT COUNT(*) FROM messages m JOIN conversations c ON c.id=m.conversation_id WHERE"
+            + " (c.low_id=? OR c.high_id=?) AND m.sender_id<>? AND m.sequence_number>CASE WHEN"
+            + " c.low_id=? THEN c.low_read ELSE c.high_read END",
+        Long.class,
+        actor,
+        actor,
+        actor,
+        actor);
   }
 
   private String encode(String id, long sequence) {

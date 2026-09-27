@@ -65,6 +65,8 @@ public class SecurityConfiguration {
                     .requestMatchers(
                         "/internal/v1/hiring/recipients", "/internal/v1/hiring/alerts/**")
                     .hasAuthority("SCOPE_hiring.recipients")
+                    .requestMatchers("/internal/v1/messaging/**")
+                    .hasAuthority("SCOPE_messaging.notifications")
                     .requestMatchers("/internal/v1/media/**")
                     .hasAuthority("SCOPE_media.manage")
                     .requestMatchers("/internal/**")

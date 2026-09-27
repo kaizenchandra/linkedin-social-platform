@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Professional Network",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "description": "Authenticated networking and hiring. Current visibility/blocking, company membership and resource ownership authorize every read. Companies are UNVERIFIED. Generic notifications disclose no private target content."
   },
   "servers": [
@@ -3010,6 +3010,22 @@
               "minimum": 1,
               "maximum": 100,
               "default": 20
+            }
+          },
+          {
+            "name": "archived",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "all",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
             }
           }
         ]
@@ -8788,6 +8804,447 @@
           }
         }
       }
+    },
+    "/api/v1/conversations/sync": {
+      "get": {
+        "summary": "Conservative replay boundary before bounded authoritative state and unread count",
+        "responses": {
+          "200": {
+            "description": "Fetch remaining REST pages and merge replay idempotently; no frozen snapshot claim",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessagingSync"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed, missing, foreign or unsupported cursor",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required or expired",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Cursor ahead of durable history",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Replay expired: synchronize authoritative state and reconnect",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Instance-local admission limit",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authority or durable database unavailable; retry",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/stream": {
+      "get": {
+        "summary": "Owner-scoped SSE invalidations; 24-hour replay, 120-second maximum connection lifetime or earlier token expiry",
+        "parameters": [
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 240
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE id is cursor; data conforms to StreamEvent. Heartbeats do not advance cursor. At-least-once replay.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed, missing, foreign or unsupported cursor",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required or expired",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Cursor ahead of durable history",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Replay expired: synchronize authoritative state and reconnect",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Instance-local admission limit",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authority or durable database unavailable; retry",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/sync": {
+      "get": {
+        "summary": "Conservative replay boundary before bounded authoritative state and unread count",
+        "responses": {
+          "200": {
+            "description": "Fetch remaining REST pages and merge replay idempotently; no frozen snapshot claim",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationSync"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed, missing, foreign or unsupported cursor",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required or expired",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Cursor ahead of durable history",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Replay expired: synchronize authoritative state and reconnect",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Instance-local admission limit",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authority or durable database unavailable; retry",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/notifications/stream": {
+      "get": {
+        "summary": "Owner-scoped SSE invalidations; 24-hour replay, 120-second maximum connection lifetime or earlier token expiry",
+        "parameters": [
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 240
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SSE id is cursor; data conforms to StreamEvent. Heartbeats do not advance cursor. At-least-once replay.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed, missing, foreign or unsupported cursor",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required or expired",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Cursor ahead of durable history",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Replay expired: synchronize authoritative state and reconnect",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Instance-local admission limit",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authority or durable database unavailable; retry",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/conversations/{id}/preferences": {
+      "patch": {
+        "summary": "Idempotently change only the supplied private flags; no implicit read",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "minProperties": 1,
+                "properties": {
+                  "muted": {
+                    "type": "boolean"
+                  },
+                  "archived": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Current owned conversation state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Conversation"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Malformed, missing, foreign or unsupported cursor",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required or expired",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Cursor ahead of durable history",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Replay expired: synchronize authoritative state and reconnect",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Instance-local admission limit",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Authority or durable database unavailable; retry",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conversation absent or not owned"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -9363,6 +9820,20 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "readVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "muted": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "preferenceVersion": {
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": [
@@ -11229,6 +11700,101 @@
           },
           "reason": {
             "type": "string"
+          }
+        }
+      },
+      "StreamEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "eventId",
+          "eventType",
+          "schemaVersion",
+          "occurredAt",
+          "resourceId",
+          "resourceVersion",
+          "cursor"
+        ],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventType": {
+            "type": "string",
+            "enum": [
+              "conversation.created",
+              "message.created",
+              "conversation.read",
+              "conversation.preferences",
+              "notification.created",
+              "notification.read"
+            ]
+          },
+          "schemaVersion": {
+            "type": "integer",
+            "const": 1
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resourceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resourceVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "cursor": {
+            "type": "string",
+            "maxLength": 240
+          }
+        }
+      },
+      "MessagingSync": {
+        "type": "object",
+        "required": [
+          "cursor",
+          "unreadCount",
+          "state"
+        ],
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "unreadCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "state": {
+            "$ref": "#/components/schemas/ConversationSlice"
+          }
+        }
+      },
+      "NotificationSync": {
+        "type": "object",
+        "required": [
+          "cursor",
+          "unreadCount",
+          "state"
+        ],
+        "properties": {
+          "cursor": {
+            "type": "string",
+            "maxLength": 240
+          },
+          "unreadCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "state": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Notification"
+            }
           }
         }
       }

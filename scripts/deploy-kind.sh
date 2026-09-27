@@ -37,9 +37,9 @@ for image in sorted(images):
 PYTHON
 docker image save --platform "$platform" -o .local/kind-images.tar \
   gvenzl/oracle-free:23.9-slim-faststart apache/kafka:4.1.2 quay.io/keycloak/keycloak:26.7.4 chrislusf/seaweedfs:4.47 \
-  professional-network/api-gateway:0.4.0 professional-network/member-service:0.4.0 \
-  professional-network/content-service:0.4.0 professional-network/notification-service:0.4.0 \
-  professional-network/media-service:0.4.0 professional-network/messaging-service:0.4.0 professional-network/hiring-service:0.4.0
+  professional-network/api-gateway:0.5.0 professional-network/member-service:0.5.0 \
+  professional-network/content-service:0.5.0 professional-network/notification-service:0.5.0 \
+  professional-network/media-service:0.5.0 professional-network/messaging-service:0.5.0 professional-network/hiring-service:0.5.0
 "$kind_bin" load image-archive .local/kind-images.tar --name professional-network-mvp
 scripts/kubectl-local.sh create namespace network-mvp --dry-run=client -o yaml | scripts/kubectl-local.sh apply -f -
 scripts/kubectl-local.sh -n network-mvp create secret generic network-secrets --from-env-file=.env --dry-run=client -o yaml | scripts/kubectl-local.sh apply -f -
@@ -52,6 +52,7 @@ scripts/kubectl-local.sh apply -f infra/k8s/infrastructure.json
 for svc in oracle kafka keycloak object-store; do scripts/kubectl-local.sh -n network-mvp rollout status deployment/$svc --timeout=300s; done
 python3 scripts/upgrade-mvp2.py kind
 python3 scripts/upgrade-mvp3.py kind
+python3 scripts/upgrade-mvp5.py
 scripts/kubectl-local.sh apply -f infra/k8s/migrations.json
 scripts/kubectl-local.sh -n network-mvp wait --for=condition=complete job --all --timeout=300s
 scripts/kubectl-local.sh apply -f infra/k8s/applications.json

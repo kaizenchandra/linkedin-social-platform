@@ -19,10 +19,15 @@ public class NotificationConsumer {
   private final Clock clock;
   private final dev.network.web.ServiceHttp http;
   private final String hiringUrl;
+  private final String messagingUrl;
+  private final dev.network.web.stream.DurableStream stream;
   private final dev.network.notification.preferences.JobAlertPreferences preferences;
 
   public NotificationConsumer(
       EntityManager em,
+      dev.network.web.stream.DurableStream stream,
+      @org.springframework.beans.factory.annotation.Value("${MESSAGING_URL:http://localhost:8085}")
+          String messagingUrl,
       NotificationRepository n,
       ObjectMapper json,
       MeterRegistry metrics,
@@ -31,6 +36,8 @@ public class NotificationConsumer {
       @org.springframework.beans.factory.annotation.Value("${HIRING_URL:http://localhost:8086}")
           String hiringUrl,
       dev.network.notification.preferences.JobAlertPreferences preferences) {
+    this.stream = stream;
+    this.messagingUrl = messagingUrl;
     this.preferences = preferences;
     this.http = http;
     this.hiringUrl = hiringUrl;
@@ -40,6 +47,8 @@ public class NotificationConsumer {
     this.metrics = metrics;
     this.clock = clock;
   }
+
+  public record MessageEligibility(boolean allowed) {}
 
   public record Recipients(List<String> memberIds) {}
 
@@ -106,6 +115,26 @@ public class NotificationConsumer {
           .timer("notifications.job.alert.latency")
           .record(Duration.between(occurred, clock.instant()).abs());
     }
+    if (type.equals("message.sent")) {
+      UUID.fromString(recipient);
+      MessageEligibility eligibility;
+      try {
+        eligibility =
+            http.post(
+                messagingUrl + "/internal/v1/messaging/notification-eligibility",
+                Map.of("memberId", recipient, "conversationId", resource),
+                MessageEligibility.class);
+        if (eligibility == null)
+          throw new IllegalStateException("Messaging preference authority unavailable");
+      } catch (RuntimeException failure) {
+        metrics.counter("notifications.message.preference.failures").increment();
+        throw failure;
+      }
+      if (!eligibility.allowed()) {
+        metrics.counter("notifications.message.suppressed").increment();
+        return;
+      }
+    }
     List<String> recipients;
     if (type.equals("hiring.application.submitted")) {
       String company = e.path("payload").path("companyId").asText();
@@ -122,15 +151,21 @@ public class NotificationConsumer {
         throw new IllegalStateException("Invalid hiring recipient resolution");
       recipients = resolved.memberIds();
     } else recipients = List.of(recipient);
-    for (String target : new HashSet<>(recipients)) {
+    var updates = new ArrayList<dev.network.web.stream.DurableStream.Update>();
+    for (String target : new TreeSet<>(recipients)) {
       UUID.fromString(target);
       if (!actor.equals(target)
           || type.startsWith("moderation.")
-          || type.equals("hiring.job.alert"))
+          || type.equals("hiring.job.alert")) {
+        String notificationId = UUID.randomUUID().toString();
         notifications.saveAndFlush(
-            new Notification(
-                UUID.randomUUID().toString(), id, target, actor, resource, type, occurred));
+            new Notification(notificationId, id, target, actor, resource, type, occurred));
+        updates.add(
+            new dev.network.web.stream.DurableStream.Update(
+                target, "notification.created", notificationId, 0));
+      }
     }
+    stream.append(updates);
     metrics.counter("notifications.processed").increment();
   }
 }

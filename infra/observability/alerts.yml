@@ -41,3 +41,18 @@ groups:
         for: 1m
         labels: {severity: warning}
         annotations: {summary: "Publication ingestion failed; inspect hiring DLT and snapshot availability"}
+      - alert: StreamDatabaseFailures
+        expr: sum(rate(network_stream_disconnects_total{reason=~"database_error|database_timeout"}[5m])) > 0
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: "Streams cannot progress; inspect Oracle and readiness before replaying"}
+      - alert: StreamCapacityPressure
+        expr: (sum(rate(network_stream_admission_rejected_total[5m])) or vector(0)) + (sum(rate(network_stream_gateway_rejected_total[5m])) or vector(0)) > 0.1
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "Instance-local stream admission is rejecting clients; inspect measured capacity"}
+      - alert: StreamRetentionCleanupFailure
+        expr: sum(increase(network_stream_cleanup_failures_total[5m])) > 0
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "Replay retention cleanup is failing; inspect database and oldest retained history"}
