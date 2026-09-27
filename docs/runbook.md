@@ -18,6 +18,33 @@ Open `requests/journey.http`, select the `local` environment. Generated private 
 
 Runtime ports: gateway8080; Keycloak8180; direct business debugging8081–8083, all loopback-bound. Runtime services use per-service DML-only accounts. Dedicated migration containers use schema-owner credentials and complete before application health gates. Do not supply owner credentials to runtime pods. Pools are8 connections per business replica: total24 at one replica/service, plus relay/migration/admin headroom. Oracle is shared local infrastructure, not HA.
 
+## Switching between Compose and kind
+
+Both environments bind gateway port8080 and Keycloak port8180. A `port is already allocated` error can mean the other environment is still running. Confirm the owner with `docker ps --format '{{.Names}}\t{{.Ports}}'`.
+
+Switch from this project's kind cluster to Compose:
+
+```sh
+docker stop professional-network-mvp-control-plane
+docker compose up -d --build --wait --wait-timeout 240
+```
+
+If Keycloak reports healthy after a failed bind but `docker compose ps` shows no published port for it, recreate only that container to restore the binding (its named data volume is preserved):
+
+```sh
+docker compose up -d --no-deps --force-recreate --wait --wait-timeout 120 keycloak
+```
+
+Switch back to an existing, stopped kind node:
+
+```sh
+docker compose -f compose.yaml -f compose.observability.yaml stop
+docker start professional-network-mvp-control-plane
+scripts/kubectl-local.sh -n network-mvp get pods,pvc,jobs
+```
+
+Allow Kubernetes workloads to become ready before using the APIs. These commands preserve both environments' separate datasets. Do not delete the kind cluster or run `down -v` merely to free ports. Sessions belong to each environment's Keycloak instance; log in again after switching. For the acceptance scripts, regenerate the test session with `python3 scripts/auth-test-setup.py` and `python3 scripts/smoke.py`.
+
 ## Identity and security
 
 Run `python3 scripts/login.py` for interactive login/registration. It opens Keycloak and captures the localhost8765 callback with S256 PKCE and state validation; tokens are stored in an owner-only `.local/interactive-token.json`. Passwords remain in Keycloak. `network-web` has no password grant. Test provisioning creates uniquely named disposable test-only direct-grant clients and three identities through Admin REST; these are for the repeatable acceptance scripts only.

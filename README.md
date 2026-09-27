@@ -8,6 +8,14 @@ MVP-1 includes profiles and experience, member search, connection requests, text
 
 Requires JDK21, Docker/Compose and Python3; allow roughly 9 GB Docker memory. Import root `pom.xml` into IntelliJ and select JDK21.
 
+Compose and the local kind cluster both use ports **8080 and 8180**. If you previously deployed kind, stop its dedicated node before starting Compose (the cluster and its data are retained):
+
+```sh
+docker stop professional-network-mvp-control-plane
+```
+
+On a fresh setup there is no kind node to stop. If `.env` already exists, skip `init-local.py`; it intentionally preserves existing secrets.
+
 ```sh
 python3 scripts/init-local.py
 scripts/java21.sh -B -ntp clean verify
@@ -23,7 +31,7 @@ Gateway: http://localhost:8080. Keycloak: http://localhost:8180. Run `python3 sc
 
 ## Evidence and design
 
-All local phases passed: 20 automated tests, real Compose/kind journeys, Kafka recovery/replay, Oracle backup/restore, traces, metrics and application image scans. The dedicated kind deployment is running. Remote CI has not been executed. See [verification](docs/verification.md) and [current checkpoint](docs/progress.md) for exact scope and limitations.
+All local phases passed: 20 automated tests, real Compose/kind journeys, Kafka recovery/replay, Oracle backup/restore, traces, metrics and application image scans. Both deployment modes have been verified; see the current checkpoint for which one is running. Remote CI has not been executed. See [verification](docs/verification.md) and [current checkpoint](docs/progress.md) for exact scope and limitations.
 
 - [Architecture and ownership](docs/architecture.md), [ADRs](docs/adr/), [technology decisions](docs/technology-decisions.md)
 - [OpenAPI](contracts/openapi.json), [event schema](contracts/event-v1.schema.json), [IntelliJ requests](requests/journey.http)
