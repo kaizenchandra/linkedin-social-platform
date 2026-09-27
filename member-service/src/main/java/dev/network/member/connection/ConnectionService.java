@@ -13,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class ConnectionService {
   public static final int MAX_CONNECTIONS = 500;
+  private final dev.network.member.policy.PolicyService policy;
   private final ConnectionRepository connections;
   private final MemberRepository members;
   private final EventWriter events;
@@ -21,11 +22,13 @@ public class ConnectionService {
 
   public ConnectionService(
       ConnectionRepository c,
+      dev.network.member.policy.PolicyService policy,
       MemberRepository m,
       EventWriter e,
       Clock clock,
       jakarta.persistence.EntityManager em) {
     this.em = em;
+    this.policy = policy;
     connections = c;
     members = m;
     events = e;
@@ -55,6 +58,7 @@ public class ConnectionService {
     if (actor.equals(target))
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Self connection is not allowed");
     lockPair(actor, target);
+    policy.requireVisible(actor, target);
     String low = actor.compareTo(target) < 0 ? actor : target,
         high = actor.compareTo(target) < 0 ? target : actor;
     var c =
@@ -98,6 +102,7 @@ public class ConnectionService {
     // we waited.
     em.refresh(initial);
     var c = initial;
+    if (action.equals("accept")) policy.requireVisible(c.lowId, c.highId);
     if (action.equals("accept")
         && c.state != Connection.State.ACCEPTED
         && (connections.degree(c.lowId) >= MAX_CONNECTIONS

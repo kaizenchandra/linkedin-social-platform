@@ -11,6 +11,7 @@ import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.web.SecurityFilterChain;
 
 @org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
+@org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity
 @Configuration
 public class SecurityConfiguration {
   @Bean
@@ -56,6 +57,10 @@ public class SecurityConfiguration {
                     .hasAuthority("SCOPE_metrics.read")
                     .requestMatchers("/actuator/**")
                     .denyAll()
+                    .requestMatchers("/api/v1/moderation/**")
+                    .hasRole("moderator")
+                    .requestMatchers("/internal/v1/media/**")
+                    .hasAuthority("SCOPE_media.manage")
                     .requestMatchers("/internal/**")
                     .hasAuthority("SCOPE_connections.read")
                     .anyRequest()
@@ -66,10 +71,36 @@ public class SecurityConfiguration {
                     .accessDeniedHandler((req, res, error) -> problem(res, 403, "Forbidden")))
         .oauth2ResourceServer(
             o ->
-                o.jwt(j -> {})
+                o.jwt(j -> j.jwtAuthenticationConverter(authenticationConverter()))
                     .authenticationEntryPoint(
                         (req, res, error) -> problem(res, 401, "Unauthorized")))
         .build();
+  }
+
+  private org.springframework.security.oauth2.server.resource.authentication
+          .JwtAuthenticationConverter
+      authenticationConverter() {
+    var converter =
+        new org.springframework.security.oauth2.server.resource.authentication
+            .JwtAuthenticationConverter();
+    converter.setJwtGrantedAuthoritiesConverter(
+        jwt -> {
+          var scopes =
+              new org.springframework.security.oauth2.server.resource.authentication
+                  .JwtGrantedAuthoritiesConverter();
+          var authorities =
+              new java.util.ArrayList<org.springframework.security.core.GrantedAuthority>(
+                  scopes.convert(jwt));
+          Object claim = jwt.getClaim("realm_access");
+          if (claim instanceof java.util.Map<?, ?> realm
+              && realm.get("roles") instanceof java.util.List<?> roles
+              && roles.contains("moderator"))
+            authorities.add(
+                new org.springframework.security.core.authority.SimpleGrantedAuthority(
+                    "ROLE_moderator"));
+          return authorities;
+        });
+    return converter;
   }
 
   private static void problem(

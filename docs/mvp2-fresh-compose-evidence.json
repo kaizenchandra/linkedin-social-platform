@@ -1,0 +1,100 @@
+{
+  "release": "0.2.0",
+  "recordedAtUtc": "2026-09-27T07:01:21.736109+00:00",
+  "project": "professional-network-mvp2-fresh-verification",
+  "newVolumes": true,
+  "services": {
+    "api-gateway": {
+      "state": "running",
+      "health": "healthy",
+      "exitCode": 0
+    },
+    "content-migration": {
+      "state": "exited",
+      "health": "",
+      "exitCode": 0
+    },
+    "content-service": {
+      "state": "running",
+      "health": "healthy",
+      "exitCode": 0
+    },
+    "kafka": {
+      "state": "running",
+      "health": "healthy",
+      "exitCode": 0
+    },
+    "kafka-init": {
+      "state": "exited",
+      "health": "",
+      "exitCode": 0
+    },
+    "keycloak": {
+      "state": "running",
+      "health": "healthy",
+      "exitCode": 0
+    },
+    "media-migration": {
+      "state": "exited",
+      "health": "",
+      "exitCode": 0
+    },
+    "media-service": {
+      "state": "running",
+      "health": "healthy",
+      "exitCode": 0
+    },
+    "member-migration": {
+      "state": "exited",
+      "health": "",
+      "exitCode": 0
+    },
+    "member-service": {
+      "state": "running",
+      "health": "healthy",
+      "exitCode": 0
+    },
+    "messaging-migration": {
+      "state": "exited",
+      "health": "",
+      "exitCode": 0
+    },
+    "messaging-service": {
+      "state": "running",
+      "health": "healthy",
+      "exitCode": 0
+    },
+    "notification-migration": {
+      "state": "exited",
+      "health": "",
+      "exitCode": 0
+    },
+    "notification-service": {
+      "state": "running",
+      "health": "healthy",
+      "exitCode": 0
+    },
+    "object-store": {
+      "state": "running",
+      "health": "healthy",
+      "exitCode": 0
+    },
+    "oracle": {
+      "state": "running",
+      "health": "healthy",
+      "exitCode": 0
+    }
+  },
+  "verified": [
+    "fresh schema and identity import",
+    "PKCE, refresh and logout",
+    "MVP-1 regression smoke",
+    "six-service invalid/anonymous JWT rejection",
+    "forged identity and chunked-body limits",
+    "complete MVP-2 smoke",
+    "bucket-scoped S3 permissions",
+    "message/moderation duplicate replay",
+    "OpenAPI/event/live contracts"
+  ],
+  "originalComposeDataPreserved": true
+}

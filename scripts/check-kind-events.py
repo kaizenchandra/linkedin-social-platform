@@ -29,3 +29,23 @@ try:
 finally:
  subprocess.run(k+['scale','deployment/content-service','--replicas=1'],check=True)
  subprocess.run(k+['rollout','status','deployment/content-service','--timeout=180s'],check=True)
+
+if 'conversationId' in s:
+ import uuid
+ cid=s['conversationId']
+ def message_notes():return [n for n in request('GET','/api/v1/notifications?size=100',b) if n['resourceId']==cid]
+ subprocess.run(k+['scale','deployment/messaging-service','--replicas=2'],check=True)
+ try:
+  subprocess.run(k+['rollout','status','deployment/messaging-service','--timeout=180s'],check=True)
+  deployment=json.loads(subprocess.check_output(k+['get','deployment/messaging-service','-o','json'],text=True));assert deployment['status']['readyReplicas']==2
+  before=len(message_notes())
+  for i in range(10):request('POST','/api/v1/conversations/'+cid+'/messages',a,{'clientMessageId':str(uuid.uuid4()),'body':'Two ready messaging relays '+str(i)})
+  end=time.monotonic()+60
+  while time.monotonic()<end:
+   if len(message_notes())==before+10:break
+   time.sleep(.25)
+  else:raise AssertionError('Messaging relay count mismatch')
+  print('PASS: ten messages with two ready messaging/relay replicas, no duplicate notifications')
+ finally:
+  subprocess.run(k+['scale','deployment/messaging-service','--replicas=1'],check=True)
+  subprocess.run(k+['rollout','status','deployment/messaging-service','--timeout=180s'],check=True)

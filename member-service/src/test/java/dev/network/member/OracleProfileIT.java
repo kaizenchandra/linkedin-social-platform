@@ -35,6 +35,46 @@ class OracleProfileIT {
   @Autowired dev.network.member.connection.ConnectionService connections;
   @Autowired dev.network.member.connection.ConnectionRepository relationships;
 
+  @Autowired dev.network.member.policy.PolicyService policy;
+  @Autowired dev.network.member.policy.BlockRepository blocks;
+
+  @Test
+  void blockRemovesConnectionAndUnblockDoesNotRestore() throws Exception {
+    String a = UUID.randomUUID().toString(), b = UUID.randomUUID().toString();
+    for (String id : java.util.List.of(a, b))
+      profiles.save(
+          jwt(id),
+          new ProfileController.Input("Privacy member", null, null, null, java.util.List.of()));
+    var c = connections.request(a, b);
+    connections.command(b, c.id(), "accept");
+    try (var pool = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+      var one = pool.submit(() -> policy.block(a, b));
+      var two = pool.submit(() -> policy.block(a, b));
+      one.get();
+      two.get();
+    }
+    assertThat(blocks.relevant(a, java.util.List.of(b))).hasSize(1);
+    assertThat(connections.accepted(a)).isEmpty();
+    assertThatThrownBy(() -> profiles.get(jwt(b), a))
+        .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+    assertThat(profiles.lookup(jwt(b), java.util.List.of(a))).isEmpty();
+    assertThat(profiles.search(jwt(b), "Privacy", 0, 100)).noneMatch(x -> x.id().equals(a));
+    assertThatThrownBy(() -> connections.request(b, a))
+        .isInstanceOf(org.springframework.web.server.ResponseStatusException.class);
+    policy.unblock(a, b);
+    policy.unblock(a, b);
+    assertThat(connections.accepted(a)).isEmpty();
+    assertThat(policy.check(b, java.util.List.of(a)).getFirst().visible()).isTrue();
+    assertThatThrownBy(() -> policy.block(a, a)).isInstanceOf(IllegalArgumentException.class);
+  }
+
+  private org.springframework.security.oauth2.jwt.Jwt jwt(String id) {
+    return org.springframework.security.oauth2.jwt.Jwt.withTokenValue("test")
+        .header("alg", "test")
+        .subject(id)
+        .build();
+  }
+
   @Test
   void reciprocalConcurrentRequestsHaveOneCanonicalRow() throws Exception {
     String a = UUID.randomUUID().toString(), b = UUID.randomUUID().toString();
@@ -106,6 +146,6 @@ class OracleProfileIT {
     var first = profiles.save(jwt, input);
     var second = profiles.save(jwt, input);
     assertThat(first.id()).isEqualTo(second.id());
-    assertThat(profiles.get(id).experiences()).hasSize(1);
+    assertThat(profiles.get(jwt, id).experiences()).hasSize(1);
   }
 }

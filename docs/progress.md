@@ -1,13 +1,11 @@
-# MVP-1 progress
+# Project progress
 
-Current phase: Phase 6 complete — local deployment and handover verified on 2026-09-27.
+Current release: **MVP-2 / 0.2.0**, phases 0–6 locally verified on 2026-09-27. See [MVP-2 progress](mvp2-progress.md) and [executed verification](mvp2-verification.md).
 
-All MVP-1 implementation phases passed their local gates. Four independently deployable applications implement profiles, connections, text posts, comments, likes, current-connection feeds and persistent notifications. Oracle migrations, real Keycloak authentication, transactional outboxes and Kafka recovery are exercised against running infrastructure.
+Six applications implement profiles/connections/content/notifications plus private images, visibility/blocking, one-to-one messages and audited moderation. Fresh Compose and dedicated kind journeys, populated upgrade, real Oracle/S3 tests, Kafka recovery, rolling restarts and disposable backup/restore pass. Remote CI is NOT RUN; no external deployment or publishing occurred.
 
-Verification: 20 automated tests passed with no failures or skips; Compose and kind acceptance journeys passed; duplicate replay, broker outage recovery, consumer restart, dead-letter repair and two ready relay replicas passed. HTTP/async traces, authenticated metrics, local load, application image scans, rolling restarts and disposable Oracle backup/restore passed. See [verification](verification.md) for commands, results and limits.
+The original Compose dataset is running with ten healthy core services and optional observability; the dedicated kind node is stopped. Keep it stopped while Compose runs: both bind8080/8180. The earlier Keycloak port-allocation failure was resolved by stopping the competing local kind node and recreating Keycloak with its named volume retained. The switching and missing-port recovery commands remain in the [runbook](runbook.md#switching-between-compose-and-kind).
 
-Deployment: Compose is running with all seven long-running services healthy. Gateway http://localhost:8080 and Keycloak http://localhost:8180 respond on the host. The dedicated `professional-network-mvp` kind node is stopped, retaining its cluster data. On 2026-09-27, it was stopped to resolve its port8080/8180 conflict with Compose; Keycloak was recreated with its named volume retained to repair the failed startup's missing port binding. Both deployment modes remain verified; only one should run at a time. Nothing was published or deployed externally.
+Historical MVP-1: four applications and20 tests passed all local gates before this extension; its evidence remains in [verification.md](verification.md). The prior record of a retained kind node was stale when this release deployed, so MVP-2 kind evidence is explicitly a fresh installation. Populated Oracle upgrades were verified separately.
 
-Outstanding blockers: none for the verified local MVP-1 scope. Remote GitHub Actions execution is NOT RUN. Production availability, larger datasets, sustained capacity and identity-provider disaster recovery are outside the evidence. Optional telemetry was verified on Compose, not deployed in kind.
-
-Next executable action: use `python3 scripts/login.py` for interactive PKCE login or inspect the running services with `docker compose ps`. Import root `pom.xml` into IntelliJ with JDK21. Do not begin another release automatically.
+No unresolved local release blocker. Use the running APIs or IntelliJ requests; do not start another release without a new request.

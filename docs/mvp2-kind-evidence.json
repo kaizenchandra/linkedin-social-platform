@@ -1,0 +1,100 @@
+{
+  "release": "0.2.0",
+  "recordedAtUtc": "2026-09-27T06:58:28.978462+00:00",
+  "installation": "Fresh dedicated kind cluster",
+  "deployments": {
+    "api-gateway": {
+      "ready": 1,
+      "desired": 1,
+      "images": [
+        "professional-network/api-gateway:0.2.0"
+      ]
+    },
+    "content-service": {
+      "ready": 1,
+      "desired": 1,
+      "images": [
+        "professional-network/content-service:0.2.0"
+      ]
+    },
+    "kafka": {
+      "ready": 1,
+      "desired": 1,
+      "images": [
+        "apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e"
+      ]
+    },
+    "keycloak": {
+      "ready": 1,
+      "desired": 1,
+      "images": [
+        "quay.io/keycloak/keycloak:26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c"
+      ]
+    },
+    "media-service": {
+      "ready": 1,
+      "desired": 1,
+      "images": [
+        "professional-network/media-service:0.2.0"
+      ]
+    },
+    "member-service": {
+      "ready": 1,
+      "desired": 1,
+      "images": [
+        "professional-network/member-service:0.2.0"
+      ]
+    },
+    "messaging-service": {
+      "ready": 1,
+      "desired": 1,
+      "images": [
+        "professional-network/messaging-service:0.2.0"
+      ]
+    },
+    "notification-service": {
+      "ready": 1,
+      "desired": 1,
+      "images": [
+        "professional-network/notification-service:0.2.0"
+      ]
+    },
+    "object-store": {
+      "ready": 1,
+      "desired": 1,
+      "images": [
+        "chrislusf/seaweedfs:4.47@sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882"
+      ]
+    },
+    "oracle": {
+      "ready": 1,
+      "desired": 1,
+      "images": [
+        "gvenzl/oracle-free:23.9-slim-faststart@sha256:6e0217d72368dd9c213d75274bc2bcb1682a103680090998a8943a173670aba3"
+      ]
+    }
+  },
+  "pvc": {
+    "kafka-data": "Bound",
+    "keycloak-data": "Bound",
+    "object-data": "Bound",
+    "oracle-data": "Bound"
+  },
+  "jobs": {
+    "content-migration-mvp2": 1,
+    "kafka-acls-mvp2": 1,
+    "media-migration-mvp2": 1,
+    "member-migration-mvp2": 1,
+    "messaging-migration-mvp2": 1,
+    "notification-migration-mvp2": 1
+  },
+  "verified": [
+    "34 resources server dry run",
+    "MVP-1 PKCE and regression smoke",
+    "complete MVP-2 smoke",
+    "message/moderation replay deduplication",
+    "two ready content relays,20 events",
+    "two ready messaging relays,10 events",
+    "six rolling restarts with exact data and image equality"
+  ]
+}

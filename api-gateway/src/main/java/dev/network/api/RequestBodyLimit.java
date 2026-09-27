@@ -11,12 +11,19 @@ import reactor.core.publisher.*;
 
 @Component
 public class RequestBodyLimit implements GlobalFilter, Ordered {
+  private final java.util.concurrent.Semaphore uploads = new java.util.concurrent.Semaphore(2);
+
   public int getOrder() {
     return -100;
   }
 
   public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-    return DataBufferUtils.join(exchange.getRequest().getBody(), 65536)
+    boolean upload = exchange.getRequest().getPath().value().equals("/api/v1/media");
+    if (upload && !uploads.tryAcquire()) {
+      return GatewayConfiguration.problem(exchange, 429, "Upload capacity busy");
+    }
+    int limit = upload ? 6 * 1024 * 1024 : 65536;
+    return DataBufferUtils.join(exchange.getRequest().getBody(), limit)
         .map(
             buffer -> {
               byte[] bytes = new byte[buffer.readableByteCount()];
@@ -66,6 +73,10 @@ public class RequestBodyLimit implements GlobalFilter, Ordered {
                               .wrap(
                                   "{\"type\":\"about:blank\",\"status\":413,\"title\":\"Request too large\"}"
                                       .getBytes(java.nio.charset.StandardCharsets.UTF_8))));
+            })
+        .doFinally(
+            signal -> {
+              if (upload) uploads.release();
             });
   }
 }

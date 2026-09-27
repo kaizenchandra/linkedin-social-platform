@@ -6,7 +6,7 @@
       "apiVersion": "batch/v1",
       "kind": "Job",
       "metadata": {
-        "name": "member-migration-v1",
+        "name": "member-migration-mvp2",
         "namespace": "network-mvp",
         "labels": {
           "app": "member-migration-v1"
@@ -29,7 +29,7 @@
             "containers": [
               {
                 "name": "migration",
-                "image": "professional-network/member-service:0.1.0",
+                "image": "professional-network/member-service:0.2.0",
                 "imagePullPolicy": "IfNotPresent",
                 "command": [
                   "java",
@@ -89,7 +89,7 @@
       "apiVersion": "batch/v1",
       "kind": "Job",
       "metadata": {
-        "name": "content-migration-v1",
+        "name": "content-migration-mvp2",
         "namespace": "network-mvp",
         "labels": {
           "app": "content-migration-v1"
@@ -112,7 +112,7 @@
             "containers": [
               {
                 "name": "migration",
-                "image": "professional-network/content-service:0.1.0",
+                "image": "professional-network/content-service:0.2.0",
                 "imagePullPolicy": "IfNotPresent",
                 "command": [
                   "java",
@@ -172,7 +172,7 @@
       "apiVersion": "batch/v1",
       "kind": "Job",
       "metadata": {
-        "name": "notification-migration-v1",
+        "name": "notification-migration-mvp2",
         "namespace": "network-mvp",
         "labels": {
           "app": "notification-migration-v1"
@@ -195,7 +195,7 @@
             "containers": [
               {
                 "name": "migration",
-                "image": "professional-network/notification-service:0.1.0",
+                "image": "professional-network/notification-service:0.2.0",
                 "imagePullPolicy": "IfNotPresent",
                 "command": [
                   "java",
@@ -255,7 +255,7 @@
       "apiVersion": "batch/v1",
       "kind": "Job",
       "metadata": {
-        "name": "kafka-acls-v1",
+        "name": "kafka-acls-mvp2",
         "namespace": "network-mvp"
       },
       "spec": {
@@ -324,6 +324,172 @@
                 "type": "RuntimeDefault"
               }
             }
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "Job",
+      "metadata": {
+        "name": "media-migration-mvp2",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "content-migration-v1"
+        }
+      },
+      "spec": {
+        "backoffLimit": 2,
+        "activeDeadlineSeconds": 300,
+        "template": {
+          "spec": {
+            "restartPolicy": "Never",
+            "automountServiceAccountToken": false,
+            "securityContext": {
+              "runAsUser": 10001,
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "containers": [
+              {
+                "name": "media-migration",
+                "image": "professional-network/media-service:0.2.0",
+                "imagePullPolicy": "IfNotPresent",
+                "command": [
+                  "java",
+                  "-Dloader.main=dev.network.web.Migrate",
+                  "-cp",
+                  "/app/app.jar",
+                  "org.springframework.boot.loader.launch.PropertiesLauncher"
+                ],
+                "env": [
+                  {
+                    "name": "DB_URL",
+                    "value": "jdbc:oracle:thin:@//oracle:1521/FREEPDB1"
+                  },
+                  {
+                    "name": "DB_USER",
+                    "value": "media_app"
+                  },
+                  {
+                    "name": "DB_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "MEDIA_DB_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "DB_RUNTIME_USER",
+                    "value": "media_runtime"
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  },
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "batch/v1",
+      "kind": "Job",
+      "metadata": {
+        "name": "messaging-migration-mvp2",
+        "namespace": "network-mvp",
+        "labels": {
+          "app": "content-migration-v1"
+        }
+      },
+      "spec": {
+        "backoffLimit": 2,
+        "activeDeadlineSeconds": 300,
+        "template": {
+          "spec": {
+            "restartPolicy": "Never",
+            "automountServiceAccountToken": false,
+            "securityContext": {
+              "runAsUser": 10001,
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "containers": [
+              {
+                "name": "messaging-migration",
+                "image": "professional-network/messaging-service:0.2.0",
+                "imagePullPolicy": "IfNotPresent",
+                "command": [
+                  "java",
+                  "-Dloader.main=dev.network.web.Migrate",
+                  "-cp",
+                  "/app/app.jar",
+                  "org.springframework.boot.loader.launch.PropertiesLauncher"
+                ],
+                "env": [
+                  {
+                    "name": "DB_URL",
+                    "value": "jdbc:oracle:thin:@//oracle:1521/FREEPDB1"
+                  },
+                  {
+                    "name": "DB_USER",
+                    "value": "messaging_app"
+                  },
+                  {
+                    "name": "DB_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "network-secrets",
+                        "key": "MESSAGING_DB_PASSWORD"
+                      }
+                    }
+                  },
+                  {
+                    "name": "DB_RUNTIME_USER",
+                    "value": "messaging_runtime"
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "128Mi"
+                  },
+                  "limits": {
+                    "cpu": "1",
+                    "memory": "512Mi"
+                  }
+                },
+                "securityContext": {
+                  "allowPrivilegeEscalation": false,
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  }
+                }
+              }
+            ]
           }
         }
       }

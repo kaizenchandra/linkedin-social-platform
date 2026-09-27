@@ -20,5 +20,10 @@ public class Comment {
   @Column(nullable = false)
   public Instant createdAt;
 
+  @Convert(converter = org.hibernate.type.NumericBooleanConverter.class)
+  public boolean hidden;
+
+  public Instant deletedAt;
+
   protected Comment() {}
 }

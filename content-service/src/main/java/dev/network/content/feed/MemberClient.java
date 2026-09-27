@@ -57,6 +57,30 @@ public class MemberClient {
     return token;
   }
 
+  public record Decision(String memberId, boolean visible, boolean connected) {}
+
+  public Map<String, Decision> policy(String actor, List<String> targets) {
+    if (targets.isEmpty()) return Map.of();
+    try {
+      var result =
+          client
+              .post()
+              .uri(memberUrl + "/internal/v1/policy")
+              .headers(h -> h.setBearerAuth(token()))
+              .body(Map.of("actorId", actor, "memberIds", targets))
+              .retrieve()
+              .body(new ParameterizedTypeReference<List<Decision>>() {});
+      if (result == null) throw new IllegalStateException();
+      var decisions = new HashMap<String, Decision>();
+      for (var d : result) decisions.put(d.memberId(), d);
+      if (!decisions.keySet().containsAll(targets)) throw new IllegalStateException();
+      return decisions;
+    } catch (Exception e) {
+      throw new ResponseStatusException(
+          HttpStatus.SERVICE_UNAVAILABLE, "Current privacy policy unavailable; retry request");
+    }
+  }
+
   public List<String> accepted(String member) {
     try {
       var ids =

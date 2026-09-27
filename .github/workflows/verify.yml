@@ -1,4 +1,4 @@
-name: Verify MVP-1
+name: Verify MVP-2
 on:
   push:
   pull_request:
@@ -7,7 +7,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
@@ -34,6 +34,22 @@ jobs:
           python scripts/check-dead-letter.py
           python scripts/refresh-session.py
           python scripts/check-restart.py compose
+          python scripts/check-mvp2-upgrade.py
+          for check in check-mvp2-privacy check-mvp2-media check-media-recovery check-mvp2-messaging; do
+            python scripts/auth-test-setup.py
+            python scripts/$check.py
+          done
+          python scripts/auth-test-setup.py
+          python scripts/auth-moderator-setup.py
+          python scripts/check-mvp2-moderation.py
+          python scripts/auth-test-setup.py
+          python scripts/auth-moderator-setup.py
+          python scripts/smoke-mvp2.py
+          python scripts/check-s3-permissions.py
+          python scripts/check-mvp2-failures.py
+          python scripts/refresh-session.py
+          python scripts/check-mvp2-replay.py
+          python scripts/check-mvp2-restart.py database
       - name: Contracts and manifests
         run: |
           pip install -r scripts/requirements.lock
@@ -49,6 +65,7 @@ jobs:
             **/target/surefire-reports/*.xml
             **/target/failsafe-reports/*.xml
             .local/scans/*.json
+            docs/mvp2-*-evidence.json
       - name: Stop dedicated CI stack
         if: always()
         run: docker compose down

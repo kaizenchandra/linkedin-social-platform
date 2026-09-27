@@ -1,0 +1,29 @@
+{
+  "method": "Oracle Data Pump flashback SCN, remap to five fresh disposable schemas",
+  "tablesCompared": {
+    "MEMBER_APP.CONNECTIONS": 46,
+    "MEMBER_APP.EXPERIENCES": 20,
+    "MEMBER_APP.MEDIA_OPERATIONS": 5,
+    "MEMBER_APP.MEDIA_REFERENCES": 3,
+    "MEMBER_APP.MEMBERS": 135,
+    "MEMBER_APP.MEMBER_BLOCKS": 0,
+    "MEMBER_APP.OUTBOX": 98,
+    "CONTENT_APP.COMMENTS": 59,
+    "CONTENT_APP.CONTENT_REPORTS": 9,
+    "CONTENT_APP.MEDIA_OPERATIONS": 9,
+    "CONTENT_APP.MEDIA_REFERENCES": 4,
+    "CONTENT_APP.MODERATION_AUDIT": 25,
+    "CONTENT_APP.OUTBOX": 104,
+    "CONTENT_APP.POSTS": 141,
+    "CONTENT_APP.POST_LIKES": 20,
+    "NOTIFICATION_APP.CONSUMED_EVENTS": 242,
+    "NOTIFICATION_APP.NOTIFICATIONS": 229,
+    "MEDIA_APP.MEDIA_OBJECTS": 20,
+    "MESSAGING_APP.CONVERSATIONS": 10,
+    "MESSAGING_APP.MESSAGES": 18,
+    "MESSAGING_APP.OUTBOX": 18
+  },
+  "profileAndPostTextCompared": true,
+  "messageTextAndReadPositionsCompared": true,
+  "originalDataPreserved": true
+}

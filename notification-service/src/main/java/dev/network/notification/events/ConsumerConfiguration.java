@@ -10,7 +10,12 @@ import org.springframework.util.backoff.FixedBackOff;
 public class ConsumerConfiguration {
   @Bean
   DefaultErrorHandler errors(KafkaTemplate<String, String> template, MeterRegistry metrics) {
-    var recoverer = new DeadLetterPublishingRecoverer(template, (record, error) -> new org.apache.kafka.common.TopicPartition("network.events.v1.DLT", record.partition()));
+    var recoverer =
+        new DeadLetterPublishingRecoverer(
+            template,
+            (record, error) ->
+                new org.apache.kafka.common.TopicPartition(
+                    "network.events.v1.DLT", record.partition()));
     recoverer.setFailIfSendResultIsError(true);
     var handler =
         new DefaultErrorHandler(

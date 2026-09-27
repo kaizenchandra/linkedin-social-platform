@@ -14,11 +14,14 @@ public final class Migrate {
         runtime = required("DB_RUNTIME_USER");
     if (!runtime.matches("[a-z][a-z0-9_]{1,29}"))
       throw new IllegalArgumentException("Invalid runtime principal");
-    Flyway.configure()
-        .dataSource(url, user, password)
-        .locations("classpath:db/migration")
-        .load()
-        .migrate();
+    var configuration =
+        Flyway.configure().dataSource(url, user, password).locations("classpath:db/migration");
+    String target = System.getenv("MIGRATION_TARGET");
+    if (target != null && !target.isBlank()) {
+      if (!target.matches("[0-9]+")) throw new IllegalArgumentException("Invalid migration target");
+      configuration.target(target);
+    }
+    configuration.load().migrate();
     try (var connection = DriverManager.getConnection(url, user, password);
         var query = connection.createStatement();
         var rows =

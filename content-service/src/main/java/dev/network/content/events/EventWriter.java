@@ -20,7 +20,7 @@ public class EventWriter {
   }
 
   public void write(String type, String aggregate, long version, String actor, String recipient) {
-    if (actor.equals(recipient)) return;
+    if (actor.equals(recipient) && !type.startsWith("moderation.")) return;
     String id = UUID.randomUUID().toString();
     var row = new Outbox();
     row.id = id;

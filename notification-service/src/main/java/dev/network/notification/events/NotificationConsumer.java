@@ -43,9 +43,19 @@ public class NotificationConsumer {
         recipient = e.path("payload").path("recipientId").asText();
     for (String uuid : List.of(id, resource, actor, recipient)) UUID.fromString(uuid);
     if (e.path("schemaVersion").asInt() != 1
-        || !Set.of("connection.requested", "connection.accepted", "post.liked", "post.commented")
+        || !Set.of(
+                "connection.requested",
+                "connection.accepted",
+                "post.liked",
+                "post.commented",
+                "message.sent",
+                "moderation.hidden",
+                "moderation.restored")
             .contains(type)) throw new IllegalArgumentException("Unsupported event schema/type");
-    String expected = type.startsWith("connection.") ? "member-service" : "content-service";
+    String expected =
+        type.startsWith("connection.")
+            ? "member-service"
+            : type.equals("message.sent") ? "messaging-service" : "content-service";
     if (!expected.equals(e.path("producer").asText())
         || !e.has("correlationId")
         || !e.has("causationId")
@@ -65,7 +75,7 @@ public class NotificationConsumer {
         .setParameter("id", id)
         .setParameter("at", clock.instant())
         .executeUpdate();
-    if (!actor.equals(recipient))
+    if (!actor.equals(recipient) || type.startsWith("moderation."))
       notifications.saveAndFlush(
           new Notification(
               UUID.randomUUID().toString(), id, recipient, actor, resource, type, occurred));

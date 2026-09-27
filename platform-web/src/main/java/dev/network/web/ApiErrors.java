@@ -27,6 +27,11 @@ public class ApiErrors {
     return response(HttpStatus.BAD_REQUEST, "Invalid request parameters or body.");
   }
 
+  @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+  ResponseEntity<ProblemDetail> uploadTooLarge(Exception e) {
+    return response(HttpStatus.PAYLOAD_TOO_LARGE, "Upload exceeds the configured limit.");
+  }
+
   @ExceptionHandler(ResponseStatusException.class)
   ResponseEntity<ProblemDetail> status(ResponseStatusException e) {
     return response(e.getStatusCode(), e.getReason());

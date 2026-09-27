@@ -6,7 +6,12 @@
   "accessTokenLifespan": 300,
   "sslRequired": "none",
   "roles": {
-    "realm": []
+    "realm": [
+      {
+        "name": "moderator",
+        "description": "Explicit audited content moderation only"
+      }
+    ]
   },
   "clientScopes": [
     {
@@ -31,6 +36,17 @@
             "id.token.claim": "true",
             "introspection.token.claim": "true"
           }
+        },
+        {
+          "name": "trusted-realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true"
+          }
         }
       ]
     },
@@ -43,6 +59,13 @@
     },
     {
       "name": "metrics.read",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true"
+      }
+    },
+    {
+      "name": "media.manage",
       "protocol": "openid-connect",
       "attributes": {
         "include.in.token.scope": "true"
@@ -91,6 +114,31 @@
       "defaultClientScopes": [
         "network-audience",
         "metrics.read"
+      ]
+    },
+    {
+      "clientId": "media-internal",
+      "publicClient": false,
+      "secret": "${MEDIA_CLIENT_SECRET}",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "defaultClientScopes": [
+        "network-audience",
+        "connections.read",
+        "media.manage"
+      ]
+    },
+    {
+      "clientId": "messaging-internal",
+      "publicClient": false,
+      "secret": "${MESSAGING_CLIENT_SECRET}",
+      "serviceAccountsEnabled": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "defaultClientScopes": [
+        "network-audience",
+        "connections.read"
       ]
     }
   ]

@@ -10,13 +10,14 @@ scripts/java21.sh -B -ntp clean verify
 docker compose up -d --build --wait --wait-timeout 240
 python3 scripts/auth-test-setup.py
 python3 scripts/check-pkce.py
-python3 scripts/smoke.py
+python3 scripts/auth-moderator-setup.py
+python3 scripts/smoke-mvp2.py
 python3 scripts/http-env.py
 ```
 
 Open `requests/journey.http`, select the `local` environment. Generated private HTTP environment and `.env` must remain untracked. Testcontainers runs real Oracle23.9, no H2 business-database substitute. On OrbStack, if discovery fails set `DOCKER_HOST=unix://$HOME/.orbstack/run/docker.sock` and `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock`. `verify-oracle-local.py` uses only the dedicated Compose schemas as an alternative and tests populated migrations.
 
-Runtime ports: gateway8080; Keycloak8180; direct business debugging8081–8083, all loopback-bound. Runtime services use per-service DML-only accounts. Dedicated migration containers use schema-owner credentials and complete before application health gates. Do not supply owner credentials to runtime pods. Pools are8 connections per business replica: total24 at one replica/service, plus relay/migration/admin headroom. Oracle is shared local infrastructure, not HA.
+Runtime ports: gateway8080; Keycloak8180; direct business debugging8081–8085, all loopback-bound. Runtime services use per-service DML-only accounts. Dedicated migration containers use schema-owner credentials and complete before application health gates. Do not supply owner credentials to runtime pods. Pools are8 connections per business replica: total40 at one replica/service, plus relay/migration/admin headroom. Oracle is shared local infrastructure, not HA.
 
 ## Switching between Compose and kind
 
@@ -43,7 +44,7 @@ docker start professional-network-mvp-control-plane
 scripts/kubectl-local.sh -n network-mvp get pods,pvc,jobs
 ```
 
-Allow Kubernetes workloads to become ready before using the APIs. These commands preserve both environments' separate datasets. Do not delete the kind cluster or run `down -v` merely to free ports. Sessions belong to each environment's Keycloak instance; log in again after switching. For the acceptance scripts, regenerate the test session with `python3 scripts/auth-test-setup.py` and `python3 scripts/smoke.py`.
+Allow Kubernetes workloads to become ready before using the APIs. These commands preserve both environments' separate datasets. Do not delete the kind cluster or run `down -v` merely to free ports. Sessions belong to each environment's Keycloak instance; log in again after switching. For the acceptance scripts, regenerate the test session with `auth-test-setup.py`, `auth-moderator-setup.py`, then `smoke-mvp2.py`.
 
 ## Identity and security
 
@@ -51,7 +52,7 @@ Run `python3 scripts/login.py` for interactive login/registration. It opens Keyc
 
 OIDC discovery: http://localhost:8180/realms/network/.well-known/openid-configuration . Refresh at the discovered token endpoint with `grant_type=refresh_token`, `client_id`, `refresh_token`. Logout via the end-session endpoint or POST logout with client_id and refresh_token. Logout invalidates the refresh session, but independently validated access JWTs may remain usable until their 300-second lifetime ends, with Spring Security's default 60-second clock-skew tolerance. Logout does not immediately revoke an already issued access JWT. `check-pkce.py` demonstrates code exchange/refresh/logout. `refresh-session.py` renews smoke tokens without changing identities.
 
-All services independently validate signature, issuer, audience, expiry and UUID subject. Internal connections lookup requires `connections.read`, issued only to the content service client. Metrics require `metrics.read`. Health endpoints expose status only on separate management ports. Stateless bearer APIs do not authenticate with cookies, so CSRF is disabled. CORS has one explicit local origin. Unknown identity fields are rejected; gateway ignores forged identity headers. Request bodies, including chunked bodies, are limited to64KiB at the gateway. Tokens and content are not intentionally logged; producer failure logging omits event payloads.
+All services independently validate signature, issuer, audience, expiry and UUID subject. Internal connections lookup requires `connections.read`, issued only to scoped content, media and messaging service clients. Metrics require `metrics.read`. Health endpoints expose status only on separate management ports. Stateless bearer APIs do not authenticate with cookies, so CSRF is disabled. CORS has one explicit local origin. Unknown identity fields are rejected; gateway ignores forged identity headers. Request bodies, including chunked bodies, are limited to64KiB at the gateway, except bounded multipart media uploads (6MiB envelope). Tokens and content are not intentionally logged; producer failure logging omits event payloads.
 
 Kafka uses separate principals and explicit topic/group ACLs. Only the admin principal provisions/replays. Local SASL_PLAINTEXT and HTTP are for loopback/private-container traffic; production requires TLS, managed secrets, non-development Keycloak and network controls. The local setup is not an internet deployment.
 
@@ -62,9 +63,10 @@ scripts/fetch-agent.sh
 python3 scripts/prepare-observability.py
 docker compose -f compose.yaml -f compose.observability.yaml up -d --build --wait
 python3 scripts/auth-test-setup.py
-python3 scripts/smoke.py
+python3 scripts/auth-moderator-setup.py
+python3 scripts/smoke-mvp2.py
 python3 scripts/check-telemetry.py
-python3 scripts/load.py --seconds 20 --concurrency 4
+python3 scripts/load-mvp2.py --seconds 20 --concurrency 4
 ```
 
 Zipkin9411, Prometheus9095, Grafana3001. Grafana user `admin`, password in `.env`. Prometheus uses a scoped OAuth client; its local secret is mode0600 and container UID matches the file owner. OpenTelemetry agent is the sole tracing instrumentation path; no Brave. Trace context is persisted with outbox rows and restored for Kafka publication. IDs are log/trace fields, never metric labels. The dashboard covers request rate/latency/errors, database pools, outbox backlog/failures and consumer processing/failures. Tracing is optional and basic startup works without it.
@@ -84,13 +86,14 @@ To replay operationally, inspect the DLT with the Kafka admin console consumer u
 
 ```sh
 python3 scripts/refresh-session.py
-python3 scripts/check-restart.py compose
-python3 scripts/check-backup-restore.py
+python3 scripts/check-mvp2-restart.py compose
+python3 scripts/check-mvp2-backup.py
+python3 scripts/check-object-backup.py
 ```
 
-The Data Pump check uses a flashback SCN, exports all service schemas inside the local Oracle volume, imports into three fresh PNM_R_* schemas, compares every business table count and profile/post text, then drops only those temporary schemas. Run it while application writes are quiescent. Backups contain personal data and belong in access-controlled storage; do not commit or publish them. Local evidence demonstrates this procedure, not disaster-recovery guarantees or identity-provider recovery.
+The Data Pump check uses a flashback SCN, exports all service schemas inside the local Oracle volume, imports into five fresh PNM_R_* schemas, compares every business table count and profile/post text, then drops only those temporary schemas. Run it while application writes are quiescent. Backups contain personal data and belong in access-controlled storage; do not commit or publish them. Local evidence demonstrates this procedure, not disaster-recovery guarantees or identity-provider recovery.
 
-`docker compose stop` retains data. Never use `down -v` unless deliberately discarding the dedicated local dataset. Oracle, Kafka and Keycloak have persistent volumes. Backup before schema changes. Migration V4 converts member summaries to CLOB while preserving data; an older application expecting VARCHAR cannot be assumed to validate after rollback. Prefer forward fixes. Application image rollback does not reverse schemas, broker offsets or side effects.
+`docker compose stop` retains data. Never use `down -v` unless deliberately discarding the dedicated local dataset. Oracle, Kafka, Keycloak and object storage have persistent volumes. Backup before schema changes. Migration V4 converts member summaries to CLOB while preserving data; an older application expecting VARCHAR cannot be assumed to validate after rollback. Prefer forward fixes. Application image rollback does not reverse schemas, broker offsets or side effects.
 
 ## Dedicated kind cluster
 
@@ -100,10 +103,11 @@ docker compose -f compose.yaml -f compose.observability.yaml stop
 scripts/deploy-kind.sh
 python3 scripts/auth-test-setup.py
 python3 scripts/check-pkce.py
-python3 scripts/smoke.py
+python3 scripts/auth-moderator-setup.py
+python3 scripts/smoke-mvp2.py
 python3 scripts/check-kind-events.py
 python3 scripts/refresh-session.py
-python3 scripts/check-restart.py kind
+python3 scripts/check-mvp2-restart.py kind
 ```
 
 Run the Compose build first so all pinned infrastructure and application images exist locally. The deployment script requires a Docker version supporting `image save --platform` (verified with Docker29.4). It creates local tag aliases from pinned digest references and exports only the host platform to avoid incomplete multi-platform indexes. Oracle has a guarded init container that seeds a fresh PVC from the faststart image; existing database files are retained. Kubernetes does not perform Docker's initial named-volume copy automatically.
@@ -115,4 +119,52 @@ scripts/kubectl-local.sh apply --dry-run=server -f infra/k8s/applications.json
 scripts/kubectl-local.sh -n network-mvp get pods,pvc,jobs
 ```
 
-Structural `check-manifests.py` is not equivalent to server validation or deployment. Actual results are in verification.md.
+Structural `check-manifests.py` is not equivalent to server validation or deployment. Actual release results are in mvp2-verification.md.
+
+## MVP-2 upgrade and local operation
+
+Release0.2.0 adds media and messaging. On an existing MVP-1 checkout, retain the original `.env` and volumes:
+
+```sh
+python3 scripts/init-mvp2.py
+scripts/java21.sh -B -ntp clean verify
+docker compose stop api-gateway member-service content-service notification-service
+docker compose up -d --wait oracle kafka keycloak object-store
+python3 scripts/upgrade-mvp2.py
+docker compose up -d --build --wait --wait-timeout 240
+python3 scripts/auth-test-setup.py
+python3 scripts/auth-moderator-setup.py
+python3 scripts/smoke-mvp2.py
+```
+
+Fresh setups use `init-local.py`, which generates both releases' secrets and the private S3 identity file, then build/verify and `docker compose up` as usual. Upgrade provisioning is idempotent and creates only missing schemas/clients/role configuration; it does not rotate existing credentials or grant users moderation. Long-running Compose containers use `unless-stopped` so database startup races recover; migration/ACL jobs remain one-shot.
+
+The maintenance window prevents old binaries from ignoring new privacy/moderation fields. Do not roll back to MVP-1 after private content exists. Prefer a forward fix; restoring a coordinated pre-upgrade backup loses subsequent writes. Application rollback never reverses schema changes. `check-mvp2-upgrade.py` creates isolated populated MVP-1 schemas, migrates them with the release images, verifies data/defaults and removes only its fixtures.
+
+New direct debugging ports are8084(media),8085(messaging),8333(private S3), all loopback. Applications use independent DML credentials; migrations use owners. Five business pools ×8 connections =40, plus workers/migrations/admin headroom. Run kind and Compose serially. The media S3 credential is restricted to network-media; separate local admin credentials are used only for setup/backup. SeaweedFS auxiliary ports are not host-published. Production requires TLS, service network isolation, hardened identity/database/object storage and managed secret rotation.
+
+Upload a multipart `file` to `/api/v1/media`; only decoded JPEG/PNG bytes are accepted. Files are limited to5MiB input/output,16MP and8192 per dimension; original metadata is removed. The gateway admits at most two buffered upload requests per instance; media allows one decoder per instance and a persisted40/hour uploader quota (concurrent replicas may overshoot). These are bounded local abuse controls, not global distributed limits.
+
+Edit attachments with `POST /api/v1/media/attachments`: a client UUID operationId, resourceType PROFILE/POST, owned resourceId and complete mediaIds list. Reuse an operationId only for identical retries. Empty list removes references. Profiles expose avatarMediaId; posts expose mediaIds. Downloads use the authorized `/api/v1/media/{id}/content` stream with no-store; READY uploads cannot be downloaded normally. Never expose raw storage URLs. Claims, references and cleanup use the durable owner protocol in ADR008. Default cleanup grace24h, minimum10min;25 rows per sweep. A failed dependency preserves bytes and metadata for retry. EXIF orientation is not applied; accepted images are decoded and re-encoded as stored pixels.
+
+Messages require accepted unblocked connections for new sends. History remains accessible to the two participants after disconnection/blocking. clientMessageId retries return the original result even after blocking; altered text conflicts. Poll using the returned nextCursor and mark read with a messageId from the conversation. The database enforces60 new sends/sender/conversation/minute. Moderator authority does not grant message access.
+
+Only identity-provider administrators assign the `moderator` realm role. Moderator inspection/hide/restore/dismiss endpoints require an audit reason. Report APIs never reveal reporter identities. Author deletion is now a retained tombstone; inspection redacts deleted text, and restore cannot resurrect it. Historical notifications are generic IDs/types; clients fetch targets through their authorized APIs and display unavailable on404. No durable content previews are embedded.
+
+## MVP-2 recovery and backup checks
+
+```sh
+python3 scripts/refresh-session.py
+python3 scripts/check-mvp2-failures.py       # dedicated Compose only; restores dependencies
+python3 scripts/check-mvp2-replay.py         # or: kind
+python3 scripts/check-mvp2-restart.py database
+python3 scripts/check-s3-permissions.py
+```
+
+For a quiescent backup/restore check, stop the six application containers while Oracle/object-store remain running, then run `check-mvp2-backup.py` and `check-object-backup.py`. The former uses Data Pump/flashback SCN and five isolated restore schemas, comparing table counts, text and message read positions. The latter exports bounded private objects to owner-only `.local/backups`, restores to a fresh temporary bucket, compares SHA-256, and removes that bucket. Original schemas/objects remain intact. Treat database and object snapshots as one coordinated backup set; protect backup credentials and personal data. These checks do not establish Keycloak disaster recovery, retention compliance or complete erasure.
+
+For kind, stop Compose including its optional observability services, then run `scripts/deploy-kind.sh`. It resumes an existing stopped dedicated node, loads six0.2.0 images plus pinned infrastructure, scales down old applications, applies infrastructure/secret references, provisions missing schemas/identity clients, runs uniquely named MVP-2 migration/ACL jobs, then starts the six applications. Test with the same smoke script, `check-mvp2-replay.py kind`, `check-kind-events.py`, and `check-mvp2-restart.py kind`. All operations use the explicit local kubeconfig. Do not delete existing PVCs to perform an upgrade.
+
+Prometheus now scrapes six scoped targets and loads reliability alert rules; Grafana includes media storage/reconciliation/cleanup panels. Alerts are local rules only; no external notification receiver is configured. The optional agent remains the sole tracing path. See `docs/mvp2-verification.md` for executed evidence rather than inferring status from these commands.
+
+MVP-2 retention: messages, read positions, moderation reports/audits, owner attachment operation records, notifications and consumer deduplication records have no automatic expiry in this release. Author-deleted posts/comments remain tombstoned, with normal reads denied; message deletion/account erasure are outside scope. Unreferenced objects are eligible after the configured grace measured from their last media-state update; a removed reference denies download immediately, but physical deletion waits for an eligible successful reconciliation. This is not a guaranteed delay measured from detachment, and outages extend retention. Backups have operator-managed retention. Define lawful retention, deletion workflows and backup expiry before production use; do not promise complete erasure.

@@ -21,7 +21,9 @@ import org.springframework.test.web.servlet.MockMvc;
 class ProfileSecurityTest {
   @Autowired MockMvc mvc;
   @MockitoBean MemberRepository members;
+  @MockitoBean dev.network.member.policy.PolicyService policy;
   @MockitoBean ExperienceRepository experiences;
+  @MockitoBean org.springframework.jdbc.core.JdbcTemplate db;
 
   @Test
   void anonymousRejected() throws Exception {

@@ -12,7 +12,10 @@ public interface PostRepository extends JpaRepository<Post, String> {
   Optional<Post> lock(String id);
 
   @Query(
-      "select p from Post p where p.authorId in :authors and (p.createdAt<:time or"
-          + " (p.createdAt=:time and p.id<:id)) order by p.createdAt desc,p.id desc")
-  List<Post> feed(List<String> authors, Instant time, String id, Pageable page);
+      "select p from Post p where p.hidden=false and p.deletedAt is null and p.authorId in :authors"
+          + " and (p.visibility=dev.network.content.post.Post.Visibility.MEMBERS or p.authorId in"
+          + " :connected) and (p.createdAt<:time or (p.createdAt=:time and p.id<:id)) order by"
+          + " p.createdAt desc,p.id desc")
+  List<Post> feed(
+      List<String> authors, List<String> connected, Instant time, String id, Pageable page);
 }

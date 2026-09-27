@@ -20,20 +20,20 @@ public class ContentController {
     members = m;
   }
 
-  public record PostInput(@NotBlank @Size(max = 3000) String body) {}
+  public record PostInput(@NotBlank @Size(max = 3000) String body, Post.Visibility visibility) {}
 
   public record CommentInput(@NotBlank @Size(max = 1000) String body) {}
 
   @PostMapping("/posts")
   public ContentService.PostView create(
       @AuthenticationPrincipal Jwt j, @Valid @RequestBody PostInput in) {
-    return service.create(j.getSubject(), in.body());
+    return service.create(j.getSubject(), in.body(), in.visibility());
   }
 
   @PutMapping("/posts/{id}")
   public ContentService.PostView edit(
       @AuthenticationPrincipal Jwt j, @PathVariable String id, @Valid @RequestBody PostInput in) {
-    return service.edit(j.getSubject(), id, in.body());
+    return service.edit(j.getSubject(), id, in.body(), in.visibility());
   }
 
   @DeleteMapping("/posts/{id}")
@@ -43,17 +43,18 @@ public class ContentController {
   }
 
   @GetMapping("/posts/{id}")
-  public ContentService.Detail get(@PathVariable String id) {
-    return service.detail(id);
+  public ContentService.Detail get(@AuthenticationPrincipal Jwt j, @PathVariable String id) {
+    return service.detail(j.getSubject(), id);
   }
 
   @GetMapping("/posts")
   public Pages.Slice<ContentService.PostView> posts(
+      @AuthenticationPrincipal Jwt j,
       @RequestParam String authorId,
       @RequestParam(required = false) String cursor,
       @RequestParam(defaultValue = "20") int size) {
     UUID.fromString(authorId);
-    return service.timeline(List.of(authorId), cursor, size);
+    return service.timeline(j.getSubject(), List.of(authorId), cursor, size);
   }
 
   @GetMapping("/feed")
@@ -63,7 +64,7 @@ public class ContentController {
       @RequestParam(defaultValue = "20") int size) {
     var authors = new ArrayList<>(members.accepted(j.getSubject()));
     authors.add(j.getSubject());
-    return service.timeline(authors, cursor, size);
+    return service.timeline(j.getSubject(), authors, cursor, size);
   }
 
   @PutMapping("/posts/{id}/like")
@@ -88,10 +89,11 @@ public class ContentController {
 
   @GetMapping("/posts/{id}/comments")
   public List<ContentService.CommentView> comments(
+      @AuthenticationPrincipal Jwt j,
       @PathVariable String id,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
-    return service.comments(id, page, size);
+    return service.comments(j.getSubject(), id, page, size);
   }
 
   @DeleteMapping("/comments/{id}")

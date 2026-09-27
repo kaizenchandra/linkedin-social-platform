@@ -10,6 +10,10 @@ services:
       CONTENT_RUNTIME_PASSWORD: ${CONTENT_RUNTIME_PASSWORD:?run init-local.py}
       NOTIFICATION_DB_PASSWORD: ${NOTIFICATION_DB_PASSWORD:?run init-local.py}
       NOTIFICATION_RUNTIME_PASSWORD: ${NOTIFICATION_RUNTIME_PASSWORD:?run init-local.py}
+      MEDIA_DB_PASSWORD: ${MEDIA_DB_PASSWORD}
+      MEDIA_RUNTIME_PASSWORD: ${MEDIA_RUNTIME_PASSWORD}
+      MESSAGING_DB_PASSWORD: ${MESSAGING_DB_PASSWORD}
+      MESSAGING_RUNTIME_PASSWORD: ${MESSAGING_RUNTIME_PASSWORD}
     ports:
     - 127.0.0.1:1521:1521
     volumes:
@@ -23,6 +27,7 @@ services:
       timeout: 5s
       retries: 60
     shm_size: 1gb
+    restart: unless-stopped
   kafka:
     image: apache/kafka:4.1.2@sha256:5cc2a2fd93fa2687b44015eee04fb2c3edd9e526bd64bf8bec5ff1e268772e0e
     ports:
@@ -52,6 +57,7 @@ services:
       KAFKA_MEMBER_PASSWORD: ${KAFKA_MEMBER_PASSWORD}
       KAFKA_CONTENT_PASSWORD: ${KAFKA_CONTENT_PASSWORD}
       KAFKA_NOTIFICATION_PASSWORD: ${KAFKA_NOTIFICATION_PASSWORD}
+      KAFKA_MESSAGING_PASSWORD: ${KAFKA_MESSAGING_PASSWORD}
     volumes:
     - kafka-data:/var/lib/kafka/data
     - ./infra/kafka:/opt/network:ro
@@ -66,6 +72,7 @@ services:
     command:
     - /bin/bash
     - /opt/network/start.sh
+    restart: unless-stopped
   keycloak:
     image: quay.io/keycloak/keycloak:26.7.4@sha256:82a77884f3af238beab1e7afd63b5f530e1b5c0590bd7aa60b40a40463e29b2c
     command:
@@ -78,6 +85,8 @@ services:
       METRICS_CLIENT_SECRET: ${METRICS_CLIENT_SECRET:?run init-local.py}
       KC_HOSTNAME: http://localhost:8180
       KC_HEALTH_ENABLED: 'true'
+      MEDIA_CLIENT_SECRET: ${MEDIA_CLIENT_SECRET}
+      MESSAGING_CLIENT_SECRET: ${MESSAGING_CLIENT_SECRET}
     ports:
     - 127.0.0.1:8180:8080
     volumes:
@@ -91,8 +100,9 @@ services:
       interval: 10s
       timeout: 5s
       retries: 40
+    restart: unless-stopped
   member-service:
-    image: professional-network/member-service:0.1.0
+    image: professional-network/member-service:0.2.0
     build:
       context: .
       args:
@@ -138,8 +148,9 @@ services:
       timeout: 3s
       retries: 60
       start_period: 20s
+    restart: unless-stopped
   content-service:
-    image: professional-network/content-service:0.1.0
+    image: professional-network/content-service:0.2.0
     build:
       context: .
       args:
@@ -185,8 +196,9 @@ services:
       timeout: 3s
       retries: 60
       start_period: 20s
+    restart: unless-stopped
   notification-service:
-    image: professional-network/notification-service:0.1.0
+    image: professional-network/notification-service:0.2.0
     build:
       context: .
       args:
@@ -232,8 +244,9 @@ services:
       timeout: 3s
       retries: 60
       start_period: 20s
+    restart: unless-stopped
   api-gateway:
-    image: professional-network/api-gateway:0.1.0
+    image: professional-network/api-gateway:0.2.0
     build:
       context: .
       args:
@@ -247,6 +260,8 @@ services:
       NOTIFICATION_URL: http://notification-service:8080
       OIDC_TOKEN_URL: http://keycloak:8080/realms/network/protocol/openid-connect/token
       CONTENT_CLIENT_SECRET: ${CONTENT_CLIENT_SECRET}
+      MEDIA_URL: http://media-service:8080
+      MESSAGING_URL: http://messaging-service:8080
     ports:
     - 127.0.0.1:8080:8080
     depends_on:
@@ -258,6 +273,10 @@ services:
         condition: service_healthy
       notification-service:
         condition: service_healthy
+      media-service:
+        condition: service_healthy
+      messaging-service:
+        condition: service_healthy
     mem_limit: 640m
     healthcheck:
       test:
@@ -268,8 +287,9 @@ services:
       timeout: 3s
       retries: 60
       start_period: 20s
+    restart: unless-stopped
   member-migration:
-    image: professional-network/member-service:0.1.0
+    image: professional-network/member-service:0.2.0
     entrypoint:
     - java
     - -Dloader.main=dev.network.web.Migrate
@@ -285,7 +305,7 @@ services:
       oracle:
         condition: service_healthy
   content-migration:
-    image: professional-network/content-service:0.1.0
+    image: professional-network/content-service:0.2.0
     entrypoint:
     - java
     - -Dloader.main=dev.network.web.Migrate
@@ -301,7 +321,7 @@ services:
       oracle:
         condition: service_healthy
   notification-migration:
-    image: professional-network/notification-service:0.1.0
+    image: professional-network/notification-service:0.2.0
     entrypoint:
     - java
     - -Dloader.main=dev.network.web.Migrate
@@ -328,7 +348,161 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+  object-store:
+    image: chrislusf/seaweedfs:4.47@sha256:ce9e796f1fe6f06968f4c04bdaf8f678dad9c8acdfef3d244133d71bfa6bf882
+    command:
+    - mini
+    - -dir=/data
+    - -s3.config=/run/secrets/s3-identities.json
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: network-media
+    volumes:
+    - object-data:/data
+    - ./.local/s3-identities.json:/run/secrets/s3-identities.json:ro
+    ports:
+    - 127.0.0.1:8333:8333
+    mem_limit: 512m
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - wget -q -O /dev/null http://localhost:9333/cluster/status
+      interval: 5s
+      timeout: 3s
+      retries: 60
+    restart: unless-stopped
+  media-service:
+    image: professional-network/media-service:0.2.0
+    build:
+      context: .
+      args:
+        MODULE: media-service
+    environment:
+      OIDC_ISSUER: http://localhost:8180/realms/network
+      OIDC_JWKS: http://keycloak:8080/realms/network/protocol/openid-connect/certs
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65
+      MEMBER_URL: http://member-service:8080
+      CONTENT_URL: http://content-service:8080
+      NOTIFICATION_URL: http://notification-service:8080
+      OIDC_TOKEN_URL: http://keycloak:8080/realms/network/protocol/openid-connect/token
+      CONTENT_CLIENT_SECRET: ${CONTENT_CLIENT_SECRET}
+      DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
+      DB_USER: media_runtime
+      DB_SCHEMA: media_app
+      DB_PASSWORD: ${MEDIA_RUNTIME_PASSWORD}
+      MIGRATIONS_ENABLED: 'false'
+      INTERNAL_CLIENT_ID: media-internal
+      INTERNAL_CLIENT_SECRET: ${MEDIA_CLIENT_SECRET}
+      S3_ENDPOINT: http://object-store:8333
+      S3_ACCESS_KEY: ${MEDIA_S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${MEDIA_S3_SECRET_KEY}
+    ports:
+    - 127.0.0.1:8084:8080
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      oracle:
+        condition: service_healthy
+      media-migration:
+        condition: service_completed_successfully
+      object-store:
+        condition: service_healthy
+    mem_limit: 640m
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
+        HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 20s
+    restart: unless-stopped
+  media-migration:
+    image: professional-network/media-service:0.2.0
+    entrypoint:
+    - java
+    - -Dloader.main=dev.network.web.Migrate
+    - -cp
+    - /app/app.jar
+    - org.springframework.boot.loader.launch.PropertiesLauncher
+    environment:
+      DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
+      DB_USER: media_app
+      DB_PASSWORD: ${MEDIA_DB_PASSWORD}
+      DB_RUNTIME_USER: media_runtime
+    depends_on:
+      oracle:
+        condition: service_healthy
+  messaging-service:
+    image: professional-network/messaging-service:0.2.0
+    build:
+      context: .
+      args:
+        MODULE: messaging-service
+    environment:
+      OIDC_ISSUER: http://localhost:8180/realms/network
+      OIDC_JWKS: http://keycloak:8080/realms/network/protocol/openid-connect/certs
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=65
+      MEMBER_URL: http://member-service:8080
+      CONTENT_URL: http://content-service:8080
+      NOTIFICATION_URL: http://notification-service:8080
+      OIDC_TOKEN_URL: http://keycloak:8080/realms/network/protocol/openid-connect/token
+      CONTENT_CLIENT_SECRET: ${CONTENT_CLIENT_SECRET}
+      DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
+      DB_USER: messaging_runtime
+      DB_SCHEMA: messaging_app
+      DB_PASSWORD: ${MESSAGING_RUNTIME_PASSWORD}
+      MIGRATIONS_ENABLED: 'false'
+      KAFKA_BOOTSTRAP: kafka:19092
+      KAFKA_SECURITY_PROTOCOL: SASL_PLAINTEXT
+      KAFKA_USER: messaging
+      KAFKA_PASSWORD: ${KAFKA_MESSAGING_PASSWORD}
+      INTERNAL_CLIENT_ID: messaging-internal
+      INTERNAL_CLIENT_SECRET: ${MESSAGING_CLIENT_SECRET}
+    ports:
+    - 127.0.0.1:8085:8080
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      oracle:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+      messaging-migration:
+        condition: service_completed_successfully
+    mem_limit: 640m
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - bash -c 'exec 3<>/dev/tcp/localhost/9090; printf "GET /actuator/health/readiness
+        HTTP/1.0\r\n\r\n" >&3; cat <&3 | grep -q UP'
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 20s
+    restart: unless-stopped
+  messaging-migration:
+    image: professional-network/messaging-service:0.2.0
+    entrypoint:
+    - java
+    - -Dloader.main=dev.network.web.Migrate
+    - -cp
+    - /app/app.jar
+    - org.springframework.boot.loader.launch.PropertiesLauncher
+    environment:
+      DB_URL: jdbc:oracle:thin:@//oracle:1521/FREEPDB1
+      DB_USER: messaging_app
+      DB_PASSWORD: ${MESSAGING_DB_PASSWORD}
+      DB_RUNTIME_USER: messaging_runtime
+    depends_on:
+      oracle:
+        condition: service_healthy
 volumes:
   oracle-data: null
   kafka-data: null
   keycloak-data: null
+  object-data: null

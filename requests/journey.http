@@ -1,4 +1,4 @@
-# Run auth-test-setup.py then http-env.py; choose the local environment.
+# Run auth-test-setup.py, auth-moderator-setup.py then http-env.py; choose the local environment.
 # Never commit http-client.private.env.json. Refresh-session.py then http-env.py renews tokens.
 
 ### Alice profile
@@ -93,3 +93,169 @@ Authorization: Bearer {{charlieToken}}
 GET {{baseUrl}}/api/v1/members/me
 
 > {% client.test("authentication required", () => client.assert(response.status === 401)); %}
+
+### MVP-2 block Bob
+PUT {{baseUrl}}/api/v1/blocks/{{bobId}}
+Authorization: Bearer {{aliceToken}}
+
+### Unblock Bob (does not restore the connection)
+DELETE {{baseUrl}}/api/v1/blocks/{{bobId}}
+Authorization: Bearer {{aliceToken}}
+
+### Upload one JPEG/PNG (actual bytes are validated)
+POST {{baseUrl}}/api/v1/media
+Authorization: Bearer {{aliceToken}}
+Content-Type: multipart/form-data; boundary=ImageBoundary
+
+--ImageBoundary
+Content-Disposition: form-data; name="file"; filename="image.png"
+Content-Type: image/png
+
+< ./fixtures/image.png
+--ImageBoundary--
+
+> {% client.global.set("mediaId", response.body.id); %}
+
+### Attach uploaded media to an owned post; reuse operationId only for identical retries
+POST {{baseUrl}}/api/v1/media/attachments
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{"operationId":"{{$uuid}}","resourceType":"POST","resourceId":"{{postId}}","mediaIds":["{{mediaId}}"]}
+
+### Authorize and stream image
+GET {{baseUrl}}/api/v1/media/{{mediaId}}/content
+Authorization: Bearer {{bobToken}}
+
+### Reconnect after the removal/blocking checks
+POST {{baseUrl}}/api/v1/connections
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{"targetId":"{{bobId}}"}
+
+> {% client.global.set("connectionId", response.body.id); %}
+
+### Accept the new request
+POST {{baseUrl}}/api/v1/connections/{{connectionId}}/accept
+Authorization: Bearer {{bobToken}}
+
+### Start conversation
+POST {{baseUrl}}/api/v1/conversations
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{"memberId":"{{bobId}}"}
+
+> {% client.global.set("conversationId", response.body.id); client.global.set("clientMessageId", response.body.id); %}
+
+### Send; rerun this exact request to verify idempotency
+POST {{baseUrl}}/api/v1/conversations/{{conversationId}}/messages
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{"clientMessageId":"{{clientMessageId}}","body":"Private professional discussion"}
+
+> {% client.global.set("messageId", response.body.id); %}
+
+### Poll history as Bob
+GET {{baseUrl}}/api/v1/conversations/{{conversationId}}/messages?size=20
+Authorization: Bearer {{bobToken}}
+
+### Advance Bob's read position
+PUT {{baseUrl}}/api/v1/conversations/{{conversationId}}/read
+Authorization: Bearer {{bobToken}}
+Content-Type: application/json
+
+{"messageId":"{{messageId}}"}
+
+### Restrict the post to current connections
+PUT {{baseUrl}}/api/v1/posts/{{postId}}
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{"body":"A professional networking post","visibility":"CONNECTIONS"}
+
+### Report as Bob (requires the accepted connection)
+POST {{baseUrl}}/api/v1/reports
+Authorization: Bearer {{bobToken}}
+Content-Type: application/json
+
+{"targetType":"POST","targetId":"{{postId}}","reason":"SPAM"}
+
+> {% client.global.set("reportId", response.body.id); %}
+
+### Audited moderator inspection
+POST {{baseUrl}}/api/v1/moderation/reports/{{reportId}}/inspect
+Authorization: Bearer {{moderatorToken}}
+Content-Type: application/json
+
+{"reason":"Review reported spam"}
+
+### Hide the reported post
+POST {{baseUrl}}/api/v1/moderation/reports/{{reportId}}/actions
+Authorization: Bearer {{moderatorToken}}
+Content-Type: application/json
+
+{"action":"HIDE","reason":"Confirmed spam in local test"}
+
+### Restore to its original visibility policy
+POST {{baseUrl}}/api/v1/moderation/reports/{{reportId}}/actions
+Authorization: Bearer {{moderatorToken}}
+Content-Type: application/json
+
+{"action":"RESTORE","reason":"Local test review completed"}
+
+### Read audit history
+GET {{baseUrl}}/api/v1/moderation/reports/{{reportId}}/audit
+Authorization: Bearer {{moderatorToken}}
+
+### Upload a separate avatar image
+POST {{baseUrl}}/api/v1/media
+Authorization: Bearer {{aliceToken}}
+Content-Type: multipart/form-data; boundary=AvatarBoundary
+
+--AvatarBoundary
+Content-Disposition: form-data; name="file"; filename="avatar.png"
+Content-Type: image/png
+
+< ./fixtures/image.png
+--AvatarBoundary--
+
+> {% client.global.set("avatarId", response.body.id); %}
+
+### Replace avatar (empty mediaIds removes it)
+POST {{baseUrl}}/api/v1/media/attachments
+Authorization: Bearer {{aliceToken}}
+Content-Type: application/json
+
+{"operationId":"{{$uuid}}","resourceType":"PROFILE","resourceId":"{{aliceId}}","mediaIds":["{{avatarId}}"]}
+
+### Block after exchanging messages
+PUT {{baseUrl}}/api/v1/blocks/{{bobId}}
+Authorization: Bearer {{aliceToken}}
+
+### New sends are rejected
+POST {{baseUrl}}/api/v1/conversations/{{conversationId}}/messages
+Authorization: Bearer {{bobToken}}
+Content-Type: application/json
+
+{"clientMessageId":"{{$uuid}}","body":"Blocked new send"}
+
+> {% client.test("blocked", () => client.assert(response.status === 403)); %}
+
+### Participants retain historical access
+GET {{baseUrl}}/api/v1/conversations/{{conversationId}}/messages
+Authorization: Bearer {{bobToken}}
+
+> {% client.test("history retained", () => client.assert(response.status === 200)); %}
+
+### Current policy denies image access
+GET {{baseUrl}}/api/v1/media/{{mediaId}}/content
+Authorization: Bearer {{bobToken}}
+
+> {% client.test("media private", () => client.assert(response.status === 404)); %}
+
+### Unblock without restoring the connection
+DELETE {{baseUrl}}/api/v1/blocks/{{bobId}}
+Authorization: Bearer {{aliceToken}}

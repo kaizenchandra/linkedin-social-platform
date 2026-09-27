@@ -11,7 +11,9 @@ public interface MemberRepository extends JpaRepository<Member, String> {
   Optional<Member> lock(String id);
 
   @Query(
-      "select m from Member m where lower(m.displayName) like :term escape '!' or lower(m.headline)"
-          + " like :term escape '!' order by m.displayName,m.id")
-  List<Member> search(String term, Pageable pageable);
+      "select m from Member m where (lower(m.displayName) like :term escape '!' or"
+          + " lower(m.headline) like :term escape '!') and not exists (select b.id from MemberBlock"
+          + " b where (b.blockerId=:actor and b.blockedId=m.id) or (b.blockedId=:actor and"
+          + " b.blockerId=m.id)) order by m.displayName,m.id")
+  List<Member> search(String actor, String term, Pageable pageable);
 }

@@ -25,7 +25,10 @@
         "connection.requested",
         "connection.accepted",
         "post.liked",
-        "post.commented"
+        "post.commented",
+        "message.sent",
+        "moderation.hidden",
+        "moderation.restored"
       ]
     },
     "occurredAt": {

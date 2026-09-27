@@ -21,6 +21,19 @@ public class Post {
   @Column(nullable = false)
   public Instant updatedAt;
 
+  public enum Visibility {
+    MEMBERS,
+    CONNECTIONS
+  }
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  public Visibility visibility = Visibility.MEMBERS;
+
+  @Convert(converter = org.hibernate.type.NumericBooleanConverter.class)
+  public boolean hidden;
+
+  public Instant deletedAt;
   @Version public long version;
 
   protected Post() {}

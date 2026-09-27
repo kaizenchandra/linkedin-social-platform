@@ -1,0 +1,23 @@
+groups:
+  - name: network-reliability
+    rules:
+      - alert: NetworkOutboxBacklog
+        expr: outbox_backlog > 100
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "Committed events are accumulating; check broker and relay health"}
+      - alert: MediaReconciliationFailures
+        expr: increase(media_reconciliation_failures_total[5m]) > 0
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "Media reconciliation is failing; check owner service and object storage"}
+      - alert: NetworkServiceDown
+        expr: up{job="network-services"} == 0
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: "An authenticated application metrics target is unavailable"}
+      - alert: NotificationProcessingFailures
+        expr: increase(notifications_failures_total[5m]) > 0
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: "Notification processing is failing; inspect DLT and consumer health"}

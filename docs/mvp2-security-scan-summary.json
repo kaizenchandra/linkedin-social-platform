@@ -1,0 +1,15 @@
+{
+  "release": "0.2.0",
+  "scanner": "Trivy0.74.0",
+  "date": "2026-09-27",
+  "severity": "HIGH,CRITICAL",
+  "findingsByImage": {
+    "member-service": 0,
+    "media-service": 0,
+    "api-gateway": 0,
+    "messaging-service": 0,
+    "notification-service": 0,
+    "content-service": 0
+  },
+  "scope": "Six application images and bundled dependencies; infrastructure/all severities not covered"
+}

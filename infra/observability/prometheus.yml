@@ -1,11 +1,19 @@
 global:
   scrape_interval: 10s
 scrape_configs:
-  - job_name: network-services
-    metrics_path: /actuator/prometheus
-    oauth2:
-      client_id: metrics
-      client_secret_file: /run/secrets/metrics-secret
-      token_url: http://keycloak:8080/realms/network/protocol/openid-connect/token
-    static_configs:
-      - targets: [api-gateway:9090, member-service:9090, content-service:9090, notification-service:9090]
+- job_name: network-services
+  metrics_path: /actuator/prometheus
+  oauth2:
+    client_id: metrics
+    client_secret_file: /run/secrets/metrics-secret
+    token_url: http://keycloak:8080/realms/network/protocol/openid-connect/token
+  static_configs:
+  - targets:
+    - api-gateway:9090
+    - member-service:9090
+    - content-service:9090
+    - notification-service:9090
+    - media-service:9090
+    - messaging-service:9090
+rule_files:
+- /etc/prometheus/alerts.yml

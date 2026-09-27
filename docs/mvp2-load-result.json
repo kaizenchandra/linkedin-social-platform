@@ -1,0 +1,40 @@
+{
+  "host": "macOS-27.0-arm64-arm-64bit-Mach-O",
+  "architecture": "arm64",
+  "dockerResources": "11 CPUs / 9435414528 bytes",
+  "dataset": "three members and moderator; one connected pair, private post with one PNG, one conversation; round-robin post/media/message reads",
+  "replicas": {
+    "gateway": 1,
+    "member": 1,
+    "content": 1,
+    "notification": 1,
+    "media": 1,
+    "messaging": 1
+  },
+  "concurrency": 4,
+  "durationSeconds": 20.017574583998794,
+  "requests": 2716,
+  "requestsPerSecond": 135.68077334259345,
+  "errors": 0,
+  "p50Ms": 23.90904200001387,
+  "p95Ms": 63.204542000676156,
+  "p99Ms": 163.18700000010722,
+  "resourceSnapshot": [
+    "professional-network-mvp-api-gateway-1 CPU=0.18% MEM=413.2MiB / 640MiB",
+    "professional-network-mvp-prometheus-1 CPU=0.39% MEM=74.96MiB / 8.787GiB",
+    "professional-network-mvp-grafana-1 CPU=1.11% MEM=321.8MiB / 8.787GiB",
+    "professional-network-mvp-notification-service-1 CPU=0.87% MEM=510.5MiB / 640MiB",
+    "professional-network-mvp-member-service-1 CPU=6.59% MEM=553.2MiB / 640MiB",
+    "professional-network-mvp-content-service-1 CPU=1.23% MEM=588.9MiB / 640MiB",
+    "professional-network-mvp-media-service-1 CPU=5.26% MEM=625.6MiB / 640MiB",
+    "professional-network-mvp-messaging-service-1 CPU=2.27% MEM=549MiB / 640MiB",
+    "professional-network-mvp-kafka-1 CPU=2.98% MEM=404.8MiB / 8.787GiB",
+    "professional-network-mvp-object-store-1 CPU=3.76% MEM=197.6MiB / 512MiB",
+    "professional-network-mvp-keycloak-1 CPU=0.39% MEM=589.1MiB / 8.787GiB",
+    "professional-network-mvp-oracle-1 CPU=6.22% MEM=1.996GiB / 8.787GiB"
+  ],
+  "limitations": "Local short read-only run with tracing enabled; not a saturation test or capacity guarantee.",
+  "release": "0.2.0",
+  "tracingEnabled": true,
+  "recordedAtUtc": "2026-09-27T06:46:37.543198+00:00"
+}

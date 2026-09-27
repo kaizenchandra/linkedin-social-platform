@@ -1,0 +1,6 @@
+{
+  "objectsCompared": 16,
+  "method": "Private S3 export and SHA-256 comparison after restore to an isolated bucket",
+  "originalObjectsPreserved": true,
+  "temporaryBucketRemoved": true
+}

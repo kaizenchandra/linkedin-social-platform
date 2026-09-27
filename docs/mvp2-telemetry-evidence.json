@@ -1,0 +1,12 @@
+{
+  "httpTraceId": "f47cb413f0720b526153d2157a6a0605",
+  "asyncTraceId": "f47cb413f0720b526153d2157a6a0605",
+  "asyncServices": [
+    "api-gateway",
+    "content-service",
+    "notification-service"
+  ],
+  "prometheusTargets": 6,
+  "messageAsyncTraceId": "d893887634e2d6c05b5485c1d0b64436",
+  "authorizedMediaTraceId": "7d57fecc8d6afba6bf5cf95e156222fa"
+}

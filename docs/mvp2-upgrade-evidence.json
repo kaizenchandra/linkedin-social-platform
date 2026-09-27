@@ -1,0 +1,17 @@
+{
+  "baselineTargets": {
+    "member": 4,
+    "content": 4,
+    "notification": 3
+  },
+  "preserved": [
+    "profiles",
+    "post body",
+    "comment",
+    "like",
+    "notification",
+    "dedup record"
+  ],
+  "postDefault": "MEMBERS, visible, not deleted",
+  "isolatedSchemasRemoved": true
+}

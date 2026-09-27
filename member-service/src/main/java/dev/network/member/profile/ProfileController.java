@@ -16,11 +16,20 @@ import org.springframework.web.server.ResponseStatusException;
 @RestController
 @RequestMapping("/api/v1/members")
 public class ProfileController {
+  private final dev.network.member.policy.PolicyService policy;
   private final MemberRepository members;
   private final ExperienceRepository experiences;
   private final Clock clock;
+  private final org.springframework.jdbc.core.JdbcTemplate db;
 
-  public ProfileController(MemberRepository m, ExperienceRepository e, Clock c) {
+  public ProfileController(
+      MemberRepository m,
+      ExperienceRepository e,
+      Clock c,
+      dev.network.member.policy.PolicyService policy,
+      org.springframework.jdbc.core.JdbcTemplate db) {
+    this.db = db;
+    this.policy = policy;
     members = m;
     experiences = e;
     clock = c;
@@ -46,7 +55,8 @@ public class ProfileController {
       String summary,
       String location,
       List<ExperienceInput> experiences,
-      long version) {}
+      long version,
+      String avatarMediaId) {}
 
   public record Summary(String id, String displayName, String headline, String location) {}
 
@@ -84,12 +94,13 @@ public class ProfileController {
   @GetMapping("/me")
   @Transactional(readOnly = true)
   public View me(@AuthenticationPrincipal Jwt jwt) {
-    return get(jwt.getSubject());
+    return get(jwt, jwt.getSubject());
   }
 
   @GetMapping("/{id}")
   @Transactional(readOnly = true)
-  public View get(@PathVariable String id) {
+  public View get(@AuthenticationPrincipal Jwt jwt, @PathVariable String id) {
+    policy.requireVisible(jwt.getSubject(), id);
     return view(
         members
             .findById(id)
@@ -101,6 +112,7 @@ public class ProfileController {
   @GetMapping
   @Transactional(readOnly = true)
   public List<Summary> search(
+      @AuthenticationPrincipal Jwt jwt,
       @RequestParam(defaultValue = "") String q,
       @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "20") int size) {
@@ -109,16 +121,24 @@ public class ProfileController {
         "%"
             + q.toLowerCase(Locale.ROOT).replace("!", "!!").replace("%", "!%").replace("_", "!_")
             + "%";
-    return members.search(term, PageRequest.of(Pages.page(page), Pages.size(size))).stream()
+    return members
+        .search(jwt.getSubject(), term, PageRequest.of(Pages.page(page), Pages.size(size)))
+        .stream()
         .map(m -> new Summary(m.id, m.displayName, m.headline, m.location))
         .toList();
   }
 
   @PostMapping("/lookup")
   @Transactional(readOnly = true)
-  public List<Summary> lookup(@RequestBody @Size(max = 100) List<String> ids) {
+  public List<Summary> lookup(
+      @AuthenticationPrincipal Jwt jwt, @RequestBody @Size(max = 100) List<String> ids) {
     if (ids.size() > 100) throw new IllegalArgumentException();
-    return members.findAllById(ids).stream()
+    var allowed =
+        policy.check(jwt.getSubject(), ids).stream()
+            .filter(dev.network.member.policy.PolicyService.Decision::visible)
+            .map(dev.network.member.policy.PolicyService.Decision::memberId)
+            .toList();
+    return members.findAllById(allowed).stream()
         .map(m -> new Summary(m.id, m.displayName, m.headline, m.location))
         .toList();
   }
@@ -133,6 +153,12 @@ public class ProfileController {
         experiences.findByMemberIdOrderByPosition(m.id).stream()
             .map(e -> new ExperienceInput(e.company, e.title, e.startMonth, e.endMonth))
             .toList(),
-        m.version);
+        m.version,
+        db
+            .queryForList(
+                "SELECT media_id FROM media_references WHERE resource_id=?", String.class, m.id)
+            .stream()
+            .findFirst()
+            .orElse(null));
   }
 }
